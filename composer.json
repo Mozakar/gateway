@@ -1,0 +1,62 @@
+{
+  "name": "mozakar/gateway",
+  "homepage": "https://github.com/mozakar/gateway",
+  "description": "A Laravel package for connecting to all Iraninan payment  gateways, base package mozakar/gateway",
+  "version": "1.0.0",
+  "keywords": [
+    "laravel",
+    "iran",
+    "payment",
+    "gateway",
+    "port",
+    "bank",
+    "pay",
+    "mellat",
+    "saman",
+    "pasargad",
+    "parsian",
+    "sadad",
+    "meli",
+    "payline",
+    "jahanpay",
+    "zarinpal",
+    "iranian-banks",
+    "persian-banks",
+    "pardakht",
+    "dargah",
+    "shaparak",
+    "poolport",
+    "ipay",
+    "asan-pardakht",
+    "pay-ir",
+    "paypal"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Farhad Sharifi",
+      "email": "f4rh4d13@gmail.com"
+    }
+  ],
+  "require": {
+    "nesbot/carbon": "*",
+    "paypal/rest-api-sdk-php": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Mozakar\\Gateway\\": "src/",
+      "Mozakar\\Gateway\\Tests\\": "tests/"
+    }
+  },
+  "minimum-stability": "dev",
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Mozakar\\Gateway\\GatewayServiceProvider"
+      ],
+      "aliases": {
+        "Gateway": "Mozakar\\Gateway\\Gateway"
+      }
+    }
+  }
+}
