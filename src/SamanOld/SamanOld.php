@@ -1,6 +1,6 @@
 <?php
 
-namespace Mozakar\Gateway\Samanold;
+namespace Mozakar\Gateway\SamanOld;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Request;
