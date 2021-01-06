@@ -104,6 +104,8 @@ php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProviderLara
 php artisan vendor:publish 
 
 // then choose : GatewayServiceProviderLaravel6
+// then choose : GatewayServiceProviderLaravel7
+// then choose : GatewayServiceProviderLaravel8
 
 ```
 
