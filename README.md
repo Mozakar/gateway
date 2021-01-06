@@ -31,7 +31,13 @@
 دستورات زیر را جهت نصب دنبال کنید :
 
 **مرحله ۱)**
-در فایل composer.json اضافه کنید
+
+### نصب به وسیله "composer require"
+```shell
+composer require mozakar/gateway
+```
+### یا 
+### در فایل composer.json اضافه کنید
 </div>
 
 
