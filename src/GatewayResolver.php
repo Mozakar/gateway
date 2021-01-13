@@ -18,6 +18,7 @@ use Mozakar\Gateway\Exceptions\PortNotFoundException;
 use Mozakar\Gateway\Exceptions\InvalidRequestException;
 use Mozakar\Gateway\Exceptions\NotFoundTransactionException;
 use Illuminate\Support\Facades\DB;
+use Mozakar\Gateway\Nikan\Nikan;
 
 class GatewayResolver
 {
@@ -149,7 +150,9 @@ class GatewayResolver
         } elseif ($port InstanceOf Payir) {
             $name = Enum::PAYIR;
         } elseif ($port InstanceOf Pasargad) {
-            $name = Enum::PASARGAD;
+			$name = Enum::PASARGAD;
+		} elseif ($port InstanceOf Nikan) {
+            $name = Enum::NIKAN;
         } elseif ($port InstanceOf Irankish) {
             $name = Enum::IRANKISH;
         } elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {
