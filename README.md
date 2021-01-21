@@ -14,7 +14,7 @@
 پشتیبانی تنها از درگاهای زیر می باشد:
  1. MELLAT
  2. SADAD (MELLI)
- 3. SAMAN Token Base *
+ 3. SAMAN Token Base  (جدید)
  3. SAMAN
  4. PARSIAN
  5. PASARGAD
@@ -23,7 +23,8 @@
  8. ASAN PARDAKHT 
  9. PAY.IR ( برای فراخوانی از 'payir' استفاده نمایید)
  10. Irankish (**جدید** -  برای فراخوانی از 'irankish' استفاده نمایید)
- 11. Nikan (PASARGAD) *
+ 11. Nikan (PASARGAD)  (جدید)
+ 12. PayPing (جدید)
 ----------
 
 
