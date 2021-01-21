@@ -76,6 +76,14 @@ return [
     ],
 
     //--------------------------------
+    // PayPing gateway
+    //--------------------------------
+    'payping' => [
+        'token'          => 'xxxxxxxxxxxxxxxxxxxx',
+        'callback-url' => '/'
+    ],
+
+    //--------------------------------
     // Parsian gateway
     //--------------------------------
     'parsian' => [

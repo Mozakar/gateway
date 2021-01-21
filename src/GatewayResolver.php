@@ -2,23 +2,24 @@
 
 namespace Mozakar\Gateway;
 
-use Mozakar\Gateway\Irankish\Irankish;
-use Mozakar\Gateway\Parsian\Parsian;
-use Mozakar\Gateway\Paypal\Paypal;
-use Mozakar\Gateway\Sadad\Sadad;
-use Mozakar\Gateway\Mellat\Mellat;
-use Mozakar\Gateway\Pasargad\Pasargad;
-use Mozakar\Gateway\Saman\Saman;
-use Mozakar\Gateway\SamanOld\SamanOld;
-use Mozakar\Gateway\Asanpardakht\Asanpardakht;
-use Mozakar\Gateway\Zarinpal\Zarinpal;
+use Mozakar\Gateway\Nikan\Nikan;
 use Mozakar\Gateway\Payir\Payir;
+use Mozakar\Gateway\Sadad\Sadad;
+use Mozakar\Gateway\Saman\Saman;
+use Illuminate\Support\Facades\DB;
+use Mozakar\Gateway\Mellat\Mellat;
+use Mozakar\Gateway\Paypal\Paypal;
+use Mozakar\Gateway\Parsian\Parsian;
+use Mozakar\Gateway\PayPing\PayPing;
+use Mozakar\Gateway\Irankish\Irankish;
+use Mozakar\Gateway\Pasargad\Pasargad;
+use Mozakar\Gateway\SamanOld\SamanOld;
+use Mozakar\Gateway\Zarinpal\Zarinpal;
+use Mozakar\Gateway\Asanpardakht\Asanpardakht;
 use Mozakar\Gateway\Exceptions\RetryException;
 use Mozakar\Gateway\Exceptions\PortNotFoundException;
 use Mozakar\Gateway\Exceptions\InvalidRequestException;
 use Mozakar\Gateway\Exceptions\NotFoundTransactionException;
-use Illuminate\Support\Facades\DB;
-use Mozakar\Gateway\Nikan\Nikan;
 
 class GatewayResolver
 {
@@ -152,7 +153,9 @@ class GatewayResolver
         } elseif ($port InstanceOf Pasargad) {
 			$name = Enum::PASARGAD;
 		} elseif ($port InstanceOf Nikan) {
-            $name = Enum::NIKAN;
+			$name = Enum::NIKAN;
+		} elseif ($port InstanceOf PayPing) {
+            $name = Enum::PAYPING;
         } elseif ($port InstanceOf Irankish) {
             $name = Enum::IRANKISH;
         } elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {

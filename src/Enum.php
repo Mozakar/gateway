@@ -17,15 +17,15 @@ class Enum
 	const PAYPAL = 'PAYPAL';
   	const PAYIR = 'PAYIR';
   	const IRANKISH = 'IRANKISH';
-  	const NIKAN = self::PASARGAD;
+  	const NIKAN = "NIKAN";
   	const MASKAN = self::IRANKISH;
+  	const PAYPING = "PAYPING";
 
   	static function getIPGs(){
 
         $reflect = new \ReflectionClass(static::class);
         $excepts=[
             'MASKAN',
-            'NIKAN',
             'TRANSACTION_INIT',
             'TRANSACTION_INIT_TEXT',
             'TRANSACTION_SUCCEED',
