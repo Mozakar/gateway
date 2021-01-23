@@ -4,7 +4,7 @@ namespace Mozakar\Gateway\Payping;
 
 use Mozakar\Gateway\Exceptions\BankException;
 
-class Paypingxception extends BankException
+class PaypingException extends BankException
 {
 
     public static $errors = array(
