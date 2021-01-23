@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Mozakar\Gateway\Mellat\Mellat;
 use Mozakar\Gateway\Paypal\Paypal;
 use Mozakar\Gateway\Parsian\Parsian;
-use Mozakar\Gateway\PayPing\PayPing;
+use Mozakar\Gateway\Payping\Payping;
 use Mozakar\Gateway\Irankish\Irankish;
 use Mozakar\Gateway\Pasargad\Pasargad;
 use Mozakar\Gateway\SamanOld\SamanOld;
@@ -154,7 +154,7 @@ class GatewayResolver
 			$name = Enum::PASARGAD;
 		} elseif ($port InstanceOf Nikan) {
 			$name = Enum::NIKAN;
-		} elseif ($port InstanceOf PayPing) {
+		} elseif ($port InstanceOf Payping) {
             $name = Enum::PAYPING;
         } elseif ($port InstanceOf Irankish) {
             $name = Enum::IRANKISH;

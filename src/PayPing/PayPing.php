@@ -1,12 +1,12 @@
 <?php
 
-namespace Mozakar\Gateway\PayPing;
+namespace Mozakar\Gateway\Payping;
 
 use Exception;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
 
-class PayPing extends PortAbstract implements PortInterface
+class Payping extends PortAbstract implements PortInterface
 {
     /**
      *
@@ -78,7 +78,7 @@ class PayPing extends PortAbstract implements PortInterface
             } else {
                 $this->transactionFailed();
                 $this->newLog(99, 'خطا');
-                throw new PayPingException(99, 'خطا');
+                throw new PaypingException(99, 'خطا');
             }
 
 		} catch(Exception $e){
@@ -195,12 +195,12 @@ class PayPing extends PortAbstract implements PortInterface
             if(is_array($response) && count($response)){
                 $firstKey = array_key_first($response);
                 $this->newLog($firstKey, $response[$firstKey]);
-                throw new PayPingException($firstKey, $response[$firstKey]);
+                throw new PaypingException($firstKey, $response[$firstKey]);
             }
         }
 
         $this->newLog($info["http_code"], $error);
-        throw new PayPingException($info["http_code"], $error);
+        throw new PaypingException($info["http_code"], $error);
     }
 
 

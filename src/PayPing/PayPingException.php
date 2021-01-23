@@ -1,10 +1,10 @@
 <?php
 
-namespace Mozakar\Gateway\PayPing;
+namespace Mozakar\Gateway\Payping;
 
 use Mozakar\Gateway\Exceptions\BankException;
 
-class PayPingException extends BankException
+class Paypingxception extends BankException
 {
 
     public static $errors = array(
