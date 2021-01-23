@@ -2,7 +2,7 @@
   "name": "mozakar/gateway",
   "homepage": "https://github.com/mozakar/gateway",
   "description": "A Laravel package for connecting to all Iraninan payment  gateways, base package mozakar/gateway",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "keywords": [
     "laravel",
     "iran",
