@@ -17,7 +17,7 @@
  3. SAMAN Token Base  (جدید)
  3. SAMAN
  4. PARSIAN
- 5. PASARGAD
+ 5. PASARGAD(جدید)
  6. ZARINPAL
  7. PAYPAL 
  8. ASAN PARDAKHT 

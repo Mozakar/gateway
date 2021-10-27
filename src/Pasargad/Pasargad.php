@@ -39,10 +39,9 @@ class Pasargad extends PortAbstract implements PortInterface
     /**
      * {@inheritdoc}
      */
-    public function ready($payment_id, $callback_url)
+    public function ready()
     {
-        $this->sendPayRequest($payment_id, $callback_url);
-
+        $this->newTransaction();
         return $this;
     }
 
@@ -52,7 +51,7 @@ class Pasargad extends PortAbstract implements PortInterface
     public function redirect()
     {
 
-        $processor = new RSAProcessor($this->config->get('gateway.pasargad.certificate-path'), RSAKeyType::XMLFile);
+        $processor = new RSAProcessor($this->config->get('gateway.pasargad.privateKey'), RSAKeyType::XMLString);
 
         $url = $this->gateUrl;
         $redirectUrl = $this->getCallback();
@@ -106,17 +105,6 @@ class Pasargad extends PortAbstract implements PortInterface
         return $this->callbackUrl;
     }
 
-    /**
-     * Send pay request to parsian gateway
-     *
-     * @return bool
-     *
-     * @throws ParsianErrorException
-     */
-    protected function sendPayRequest($payment_id, $callback_url)
-    {
-        $this->newTransaction($payment_id, $callback_url);
-    }
 
     /**
      * Verify payment
@@ -131,6 +119,7 @@ class Pasargad extends PortAbstract implements PortInterface
 
         $result = Parser::post2https($fields, $this->checkTransactionUrl);
         $array = Parser::makeXMLTree($result);
+        $array = isset($array['resultObj']) ? $array['resultObj'] : $array;
         $verifyResult = $this->callVerifyPayment($array);
         $array['result'] = $verifyResult['result'] ?? false;
 
@@ -155,13 +144,13 @@ class Pasargad extends PortAbstract implements PortInterface
      */
     protected function callVerifyPayment($data)
     {
-        $processor = new RSAProcessor($this->config->get('gateway.pasargad.certificate-path'), RSAKeyType::XMLFile);
+        $processor = new RSAProcessor($this->config->get('gateway.pasargad.privateKey'), RSAKeyType::XMLString);
         $merchantCode = $this->config->get('gateway.pasargad.merchantId');
         $terminalCode = $this->config->get('gateway.pasargad.terminalId');
-        $invoiceNumber = $data['invoiceNumber'];
-        $invoiceDate = $data['invoiceDate'];
+        $invoiceNumber = isset($data['invoiceNumber']) ? $data['invoiceNumber'] : '';
+        $invoiceDate = isset($data['invoiceDate']) ? $data['invoiceDate'] : '';
         $timeStamp = date("Y/m/d H:i:s");
-        $amount = $data['amount'];
+        $amount = isset($data['amount']) ? $data['amount'] : '';
         $signData = "#" . $merchantCode . "#" . $terminalCode . "#" . $invoiceNumber . "#" . $invoiceDate . "#" . $amount . "#" . $timeStamp . "#";
         $signDataSha1 = sha1($signData, true);
         $tempSign = $processor->sign($signDataSha1);

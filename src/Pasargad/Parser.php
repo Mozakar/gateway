@@ -39,7 +39,7 @@ class Parser
                         $val['value'] = $temp[$val['tag']];
                     }
 
-                    eval("\$ret['" . implode($hash_stack, "']['") . "'] = '{$val['value']}';");
+                    eval("\$ret['" . implode("']['", $hash_stack) . "'] = '{$val['value']}';");
                     array_pop($hash_stack);
                     break;
             }
