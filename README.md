@@ -7,7 +7,7 @@
 پکیج اتصال به تمامی IPG ها و  بانک های ایرانی.
 
 این پکیج با ورژن های
-(  ۴ و ۵ و ۶ و۷ و ۸ )
+(  ۴ و ۵ و ۶ و۷ و ۸ و ۹)
  لاراول سازگار می باشد
 
 
@@ -19,12 +19,12 @@
  4. PARSIAN
  5. PASARGAD(جدید)
  6. ZARINPAL
- 7. PAYPAL 
- 8. ASAN PARDAKHT 
- 9. PAY.IR ( برای فراخوانی از 'payir' استفاده نمایید)
- 10. Irankish (**جدید** -  برای فراخوانی از 'irankish' استفاده نمایید)
- 11. Nikan (PASARGAD)  (جدید)
- 12. PayPing (جدید)
+ 7. ASAN PARDAKHT 
+ 8. PAY.IR ( برای فراخوانی از 'payir' استفاده نمایید)
+ 9. Irankish (**جدید** -  برای فراخوانی از 'irankish' استفاده نمایید)
+ 10. Nikan (PASARGAD)  (جدید)
+ 11. PayPing (جدید)
+ 12. Vandar (جدید)
 ----------
 
 
@@ -108,6 +108,7 @@ php artisan vendor:publish
 // then choose : GatewayServiceProviderLaravel6
 // then choose : GatewayServiceProviderLaravel7
 // then choose : GatewayServiceProviderLaravel8
+// then choose : GatewayServiceProviderLaravel9
 
 ```
 
@@ -157,8 +158,7 @@ try {
 
    $gateway->setCallback(url('/bank/response')); // You can also change the callback
    $gateway->price(1000)
-           // setShipmentPrice(10) // optional - just for paypal
-           // setProductName("My Product") // optional - just for paypal
+           // setFactorNumber("13131313") // optional - just for vandar
            ->ready();
 
    $refId =  $gateway->refId(); // شماره ارجاع بانک
@@ -206,6 +206,66 @@ try {
     echo $e->getMessage() . "<br>";
 
 } catch (\Exception $e) {
+
+    // نمایش خطای بانک
+    echo $e->getMessage();
+}
+
+```
+
+
+
+
+<div dir="rtl">
+
+درخواست تسویه حساب از وندار (Vandar)
+
+</div>
+
+
+```php
+
+try { 
+
+  $track_id   = Str::random(32);
+  $payment_number = rand(1000000000, 9999999999);
+  $gateway = \Gateway::vandar();
+  //ibanRequest($amount, $iban, $track_id, $payment_number, $is_instant = true)
+  $response = $gateway->ibanRequest($amount, $sheba_number, $track_id, $payment_number, true);
+  if($response){
+      $response = ['success' => true, 'tx' => $track_id, 'data' => $response];
+      return $response;
+  }
+
+}catch (\Exception $e) {
+
+    // نمایش خطای بانک
+    echo $e->getMessage();
+}
+
+```
+
+
+<div dir="rtl">
+
+نمایش موجودی و لیست تراکنش ها در وندار (Vandar)
+
+</div>
+
+
+```php
+
+try { 
+
+  $gateway = \Gateway::vandar();
+
+  //نمایش موجودی
+  $balance = $gateway->balance();
+
+  //نمایش تراکنش ها
+  $transactions = $gateway->transactions();
+
+}catch (\Exception $e) {
 
     // نمایش خطای بانک
     echo $e->getMessage();

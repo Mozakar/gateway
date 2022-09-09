@@ -8,7 +8,6 @@ use Mozakar\Gateway\Sadad\Sadad;
 use Mozakar\Gateway\Saman\Saman;
 use Illuminate\Support\Facades\DB;
 use Mozakar\Gateway\Mellat\Mellat;
-use Mozakar\Gateway\Paypal\Paypal;
 use Mozakar\Gateway\Parsian\Parsian;
 use Mozakar\Gateway\Payping\Payping;
 use Mozakar\Gateway\Irankish\Irankish;
@@ -20,6 +19,7 @@ use Mozakar\Gateway\Exceptions\RetryException;
 use Mozakar\Gateway\Exceptions\PortNotFoundException;
 use Mozakar\Gateway\Exceptions\InvalidRequestException;
 use Mozakar\Gateway\Exceptions\NotFoundTransactionException;
+use Mozakar\Gateway\Vandar\Vandar;
 
 class GatewayResolver
 {
@@ -137,8 +137,8 @@ class GatewayResolver
             $name = Enum::PARSIAN;
         } elseif ($port InstanceOf Saman) {
             $name = Enum::SAMAN;
-		}
-		elseif ($port InstanceOf SamanOld) {
+				}
+				elseif ($port InstanceOf SamanOld) {
             $name = Enum::SAMANOLD;
         } elseif ($port InstanceOf Zarinpal) {
             $name = Enum::ZARINPAL;
@@ -146,19 +146,19 @@ class GatewayResolver
             $name = Enum::SADAD;
         } elseif ($port InstanceOf Asanpardakht) {
             $name = Enum::ASANPARDAKHT;
-        } elseif ($port InstanceOf Paypal) {
-            $name = Enum::PAYPAL;
         } elseif ($port InstanceOf Payir) {
             $name = Enum::PAYIR;
         } elseif ($port InstanceOf Pasargad) {
-			$name = Enum::PASARGAD;
-		} elseif ($port InstanceOf Nikan) {
-			$name = Enum::NIKAN;
-		} elseif ($port InstanceOf Payping) {
+						$name = Enum::PASARGAD;
+				} elseif ($port InstanceOf Nikan) {
+					$name = Enum::NIKAN;
+				} elseif ($port InstanceOf Payping) {
             $name = Enum::PAYPING;
         } elseif ($port InstanceOf Irankish) {
             $name = Enum::IRANKISH;
-        } elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {
+        } elseif ($port InstanceOf Vandar) {
+					$name = Enum::VANDAR;
+				}	elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {
             $port = ucfirst(strtolower($port));
             $name = strtoupper($port);
             $class = __NAMESPACE__ . '\\' . $port . '\\' . $port;

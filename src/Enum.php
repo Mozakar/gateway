@@ -14,12 +14,12 @@ class Enum
 	const SAMAN = 'SAMAN';
 	const SAMANOLD = 'SAMANOLD';
 	const ASANPARDAKHT = 'ASANPARDAKHT';
-	const PAYPAL = 'PAYPAL';
-  	const PAYIR = 'PAYIR';
-  	const IRANKISH = 'IRANKISH';
-  	const NIKAN = "NIKAN";
-  	const MASKAN = self::IRANKISH;
-  	const PAYPING = "PAYPING";
+	const PAYIR = 'PAYIR';
+	const IRANKISH = 'IRANKISH';
+	const NIKAN = "NIKAN";
+	const MASKAN = self::IRANKISH;
+	const PAYPING = "PAYPING";
+	const VANDAR = "VANDAR";
 
   	static function getIPGs(){
 

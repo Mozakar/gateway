@@ -66,6 +66,21 @@ abstract class PortAbstract
 	 */
 	protected $customInvoiceNo;
 
+
+	/**
+	 * Custom factor Number of transaction
+	 *
+	 * @var string
+	 */
+	protected $factorNumber;
+
+	/**
+	 * Payer mobile number
+	 *
+	 * @var string
+	 */
+	protected $mobile;
+
 	/**
 	 * callback URL
 	 *
@@ -181,6 +196,54 @@ abstract class PortAbstract
 	{
 		return $this->customInvoiceNo;
 	}
+
+
+
+	/**
+	 * Set custom factor on current transaction
+	 *
+	 * @param string $factorNumber
+	 *
+	 * @return void
+	 */
+	function setFactorNumber ($factorNumber)
+	{
+		$this->factorNumber = $factorNumber;
+	}
+
+	/**
+	 * Get custom factor of current transaction
+	 *
+	 * @return string | null
+	 */
+	function getFactorNumber ()
+	{
+		return $this->factorNumber;
+	}
+
+
+	/**
+	 * Set mobile on current transaction
+	 *
+	 * @param string $mobile
+	 *
+	 * @return void
+	 */
+	function setMobile ($mobile)
+	{
+		$this->mobile = $mobile;
+	}
+
+	/**
+	 * Get mobile of current transaction
+	 *
+	 * @return string | null
+	 */
+	function getMobile ()
+	{
+		return $this->mobile;
+	}
+
 
 	/**
 	 * Return card number
