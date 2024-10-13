@@ -2,12 +2,14 @@
 
 namespace Mozakar\Gateway;
 
+use Mozakar\Gateway\Apsan\Apsan;
 use Mozakar\Gateway\Nikan\Nikan;
 use Mozakar\Gateway\Payir\Payir;
 use Mozakar\Gateway\Sadad\Sadad;
 use Mozakar\Gateway\Saman\Saman;
 use Illuminate\Support\Facades\DB;
 use Mozakar\Gateway\Mellat\Mellat;
+use Mozakar\Gateway\Vandar\Vandar;
 use Mozakar\Gateway\Parsian\Parsian;
 use Mozakar\Gateway\Payping\Payping;
 use Mozakar\Gateway\Irankish\Irankish;
@@ -19,7 +21,6 @@ use Mozakar\Gateway\Exceptions\RetryException;
 use Mozakar\Gateway\Exceptions\PortNotFoundException;
 use Mozakar\Gateway\Exceptions\InvalidRequestException;
 use Mozakar\Gateway\Exceptions\NotFoundTransactionException;
-use Mozakar\Gateway\Vandar\Vandar;
 
 class GatewayResolver
 {
@@ -156,7 +157,9 @@ class GatewayResolver
             $name = Enum::PAYPING;
         } elseif ($port InstanceOf Irankish) {
             $name = Enum::IRANKISH;
-        } elseif ($port InstanceOf Vandar) {
+        }	elseif ($port InstanceOf Apsan) {
+					$name = Enum::APSAN;
+				}elseif ($port InstanceOf Vandar) {
 					$name = Enum::VANDAR;
 				}	elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {
             $port = ucfirst(strtolower($port));

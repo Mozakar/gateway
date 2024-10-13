@@ -20,6 +20,7 @@ class Enum
 	const MASKAN = self::IRANKISH;
 	const PAYPING = "PAYPING";
 	const VANDAR = "VANDAR";
+	const APSAN = "APSAN";
 
   	static function getIPGs(){
 

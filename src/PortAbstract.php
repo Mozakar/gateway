@@ -96,6 +96,21 @@ abstract class PortAbstract
 	protected $trackingCode;
 
 	/**
+	 * Order id
+	 *
+	 * @var int
+	 */
+	protected int $orderId;
+
+	/**
+	 * redirect url
+	 *
+	 * @var string
+	 */
+	protected string $redirectUrl;
+
+
+	/**
 	 * Initialize of class
 	 *
 	 * @param Config $config
@@ -300,6 +315,60 @@ abstract class PortAbstract
 	}
 
 	/**
+	 * Sets order id
+	 * @param $orderId
+	 * @return mixed
+	 */
+	function setOrderId(int $orderId)
+	{
+		$this->orderId = $orderId;
+	}
+
+	/**
+	 * get order id
+	 */
+	function getOrderId(): int
+	{
+		return $this->orderId;
+	}
+
+	/**
+	 * Set redirect url
+	 * @param $redirectUrl
+	 * @return mixed
+	 */
+	function setRedirectUrl($redirectUrl)
+	{
+		$this->redirectUrl = $redirectUrl;
+	}
+
+	/**
+	 * get redirectUrl
+	 */
+	function getRedirectUrl(): int
+	{
+		return $this->redirectUrl;
+	}
+	
+
+	/**
+	 * get data on current transaction
+	 *
+	 * @param array $data
+	 *
+	 * @return array
+	 */
+	function getData ():array
+	{
+		try {
+			$transaction = $this->getTable()->whereId($this->transactionId)->first();
+			return json_decode($transaction->data, true);
+		}catch(\Exception $ex){
+			return [];
+		}
+		
+	}
+	/**
 	 * Return result of payment
 	 * If result is done, return true, otherwise throws an related exception
 	 *
@@ -404,6 +473,20 @@ abstract class PortAbstract
 	}
 
 	/**
+	 * Update transaction data
+	 *
+	 * @return void
+	 */
+	protected function transactionSetData(array $data)
+	{
+		return $this->getTable()->whereId($this->transactionId)->update([
+			'data' => json_encode($data),
+			'updated_at' => Carbon::now(),
+		]);
+
+	}
+
+	/**
 	 * New log
 	 *
 	 * @param string|int $statusCode
@@ -411,6 +494,10 @@ abstract class PortAbstract
 	 */
 	protected function newLog($statusCode, $statusMessage)
 	{
+		if(!empty($statusMessage) && strlen($statusMessage) > 200){
+			$statusMessage = strip_tags($statusMessage); 
+			$statusMessage = substr($statusMessage, 0, 200); offset: 
+		}
 		return $this->getLogTable()->insert([
 			'transaction_id' => $this->transactionId,
 			'result_code' => $statusCode,
