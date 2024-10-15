@@ -480,7 +480,7 @@ abstract class PortAbstract
 	protected function transactionSetData(array $data)
 	{
 		return $this->getTable()->whereId($this->transactionId)->update([
-			'data' => json_encode($data),
+			'data' => json_encode(array_merge($this->getData(), $data)),
 			'updated_at' => Carbon::now(),
 		]);
 

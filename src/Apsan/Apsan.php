@@ -5,6 +5,7 @@ namespace Mozakar\Gateway\Apsan;
 use Exception;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
+use Illuminate\Support\Facades\Request;
 
 class Apsan extends PortAbstract implements PortInterface
 {
@@ -194,6 +195,8 @@ class Apsan extends PortAbstract implements PortInterface
             "token" => isset($data['token']) ? $data['token'] : $data['_token'],
         ];
         try{
+            $this->transactionSetData(Request::all());
+            $this->trackingCode = Request::has('grantId') ? Request::get('grantId') :  $this->trackingCode;
             $response = json_decode($this->curl_post($this->serverVerifyUrl, $request_data));
             if(isset($response->result) && $response->result->acknowledged) {
                 $this->transactionSucceed();
