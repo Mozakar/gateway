@@ -362,7 +362,8 @@ abstract class PortAbstract
 	{
 		try {
 			$transaction = $this->getTable()->whereId($this->transactionId)->first();
-			return json_decode($transaction->data, true);
+			$data = json_decode($transaction->data, true);
+			return is_array($data) ? $data : [];
 		}catch(\Exception $ex){
 			return [];
 		}
