@@ -133,6 +133,17 @@ return [
         'password' => '',
         'callback-url'   => '/',
     ],
+    //--------------------------------
+    // Digipay gateway
+    //--------------------------------
+    'digipay' => [
+        'username'     => '',
+        'password' => '',
+        'clientId' => '',
+        'clientSecret' => '',
+        'sandbox' => false,
+        'callback-url'   => '/',
+    ],
     //-------------------------------
     // Tables names
     //--------------------------------

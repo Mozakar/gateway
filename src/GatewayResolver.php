@@ -10,6 +10,7 @@ use Mozakar\Gateway\Saman\Saman;
 use Illuminate\Support\Facades\DB;
 use Mozakar\Gateway\Mellat\Mellat;
 use Mozakar\Gateway\Vandar\Vandar;
+use Mozakar\Gateway\Digipay\Digipay;
 use Mozakar\Gateway\Parsian\Parsian;
 use Mozakar\Gateway\Payping\Payping;
 use Mozakar\Gateway\Irankish\Irankish;
@@ -159,16 +160,19 @@ class GatewayResolver
             $name = Enum::IRANKISH;
         }	elseif ($port InstanceOf Apsan) {
 					$name = Enum::APSAN;
-				}elseif ($port InstanceOf Vandar) {
+				} elseif ($port InstanceOf Vandar) {
 					$name = Enum::VANDAR;
-				}	elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {
+				} elseif ($port InstanceOf Digipay) {
+					$name = Enum::DIGIPAY;
+				} elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {
             $port = ucfirst(strtolower($port));
             $name = strtoupper($port);
             $class = __NAMESPACE__ . '\\' . $port . '\\' . $port;
             $port = new $class;
-        } else
-            throw new PortNotFoundException;
-
+        } else {
+					throw new PortNotFoundException;
+				}
+            
         $this->port = $port;
         $this->port->setConfig($this->config); // injects config
         $this->port->setPortName($name); // injects config

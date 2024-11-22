@@ -21,6 +21,7 @@ class Enum
 	const PAYPING = "PAYPING";
 	const VANDAR = "VANDAR";
 	const APSAN = "APSAN";
+	const DIGIPAY = "DIGIPAY";
 
   	static function getIPGs(){
 

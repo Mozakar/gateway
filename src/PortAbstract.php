@@ -8,6 +8,13 @@ use Carbon\Carbon;
 abstract class PortAbstract
 {
 	/**
+	 * request
+	 *
+	 * @var Request
+	 */
+	protected $request;
+
+	/**
 	 * Transaction id
 	 *
 	 * @var null|int
@@ -111,6 +118,12 @@ abstract class PortAbstract
 
 
 	/**
+	 * useCache
+	 *
+	 * @var bool
+	 */
+	protected bool $useCache = false;
+	/**
 	 * Initialize of class
 	 *
 	 * @param Config $config
@@ -120,6 +133,7 @@ abstract class PortAbstract
 	function __construct()
 	{
 		$this->db = app('db');
+		$this->request = app('request');
 	}
 
 	/** bootstraper */
@@ -146,6 +160,16 @@ abstract class PortAbstract
 	function getLogTable()
 	{
 		return $this->db->table($this->config->get('gateway.table') . '_logs');
+	}
+
+	/**
+	 * get request
+	 *
+	 * @return Request
+	 */
+	function getRequest()
+	{
+		return $this->request;
 	}
 
 	/**
@@ -212,7 +236,10 @@ abstract class PortAbstract
 		return $this->customInvoiceNo;
 	}
 
-
+	function useCache (bool $use = true)
+	{
+		$this->useCache = $use;
+	}
 
 	/**
 	 * Set custom factor on current transaction
@@ -544,5 +571,18 @@ abstract class PortAbstract
 		(!empty($url_array['port']) ? ':' . $url_array['port'] : null) .
         (!empty($url_array['path']) ? $url_array['path'] : null) .
         '?' . http_build_query($query_array);
+	}
+
+	protected function cacheService() 
+	{
+			if (class_exists("Illuminate\Support\Facades\Cache")) {
+					return  app("Illuminate\Support\Facades\Cache");
+			}
+			throw new \Exception("Illuminate\Support\Facades\Cache  doesn't");
+	}
+
+	protected function cacheKey(string $key): string
+	{
+		return "Mozakar_Gateway_" . $key;
 	}
 }

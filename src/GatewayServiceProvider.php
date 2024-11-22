@@ -67,8 +67,11 @@ class GatewayServiceProvider extends ServiceProvider
         elseif (version_compare(\Illuminate\Foundation\Application::VERSION, '8.0', '>=') && version_compare(\Illuminate\Foundation\Application::VERSION, '9.0', '<')) {
             $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel8';
         }
-        else {
+        elseif (version_compare(\Illuminate\Foundation\Application::VERSION, '9.0', '>=') && version_compare(\Illuminate\Foundation\Application::VERSION, '9.0', '<')) {
             $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel9';
+        }
+        else {
+            $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel10';
         }
 
         return new $provider($this->app);
