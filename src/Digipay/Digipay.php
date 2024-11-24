@@ -29,9 +29,8 @@ class Digipay extends PortAbstract implements PortInterface
 
     private const DELIVER_URL = 'purchases/deliver?type={ticketType}';
 
-    private const PARTIAL_REFUND_URL = 'digipay/api/refunds?type=%s';
-    private const REFUND_URL = 'refunds?type=%s';
-    private const REFUND_STATUS_URL = 'refunds/%s';
+    private const REFUND_URL = 'digipay/api/refunds?type=%s';
+    private const REFUND_STATUS_URL = 'digipay/api/refunds/%s';
 
 	protected string $token;
     protected string $accessToken;
@@ -67,9 +66,10 @@ class Digipay extends PortAbstract implements PortInterface
      * @param array $data an array of data
      *
      */
-    function setOptionalData (array $data): void
+    function setOptionalData (array $data): self
     {
         $this->optional_data = $data;
+        return $this;
     }
 
    
@@ -237,31 +237,6 @@ class Digipay extends PortAbstract implements PortInterface
             $data = array_merge($this->getData(), ['deliver' => $response]);
             $this->transactionSetData($data);
             return $response;
-        } catch (Exception $e) {
-            throw $e;
-        }
-
-    }
-
-    /**
-     *
-     * @param  string $orderId
-     * @param  int $amount
-     * @param  string $trackingCodeOrOrderId
-     * @return array
-     *
-     * @throws Exception
-     */
-    public function partialRefund(string $orderId, int $amount, string $trackingCode): array
-    {
-        $params = [
-            'providerId' => $orderId,
-            'amount' => $amount,
-            'saleTrackingCode' => $trackingCode,
-        ];
-        try {
-            $endpoint = sprintf(self::PARTIAL_REFUND_URL, $this->getTicketType());
-            return json_decode($this->curl_post($endpoint, $params), true);
         } catch (Exception $e) {
             throw $e;
         }

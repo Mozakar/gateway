@@ -7,7 +7,7 @@
 پکیج اتصال به تمامی IPG ها و  بانک های ایرانی.
 
 این پکیج با ورژن های
-(  ۴ و ۵ و ۶ و۷ و ۸ و ۹)
+(  ۴ و ۵ و ۶ و۷ و ۸ و ۹ و ۱۰)
  لاراول سازگار می باشد
 
 
@@ -26,6 +26,7 @@
  11. PayPing (جدید)
  12. Vandar (جدید)
  13. Apsan (جدید)
+ 14. Digipay
 ----------
 
 
@@ -110,6 +111,7 @@ php artisan vendor:publish
 // then choose : GatewayServiceProviderLaravel7
 // then choose : GatewayServiceProviderLaravel8
 // then choose : GatewayServiceProviderLaravel9
+// then choose : GatewayServiceProviderLaravel10
 
 ```
 
@@ -165,11 +167,17 @@ try {
    $refId =  $gateway->refId(); // شماره ارجاع بانک
    $transID = $gateway->transactionId(); // شماره تراکنش
 
+  
    // در اینجا
    //  شماره تراکنش  بانک را با توجه به نوع ساختار دیتابیس تان 
    //  در جداول مورد نیاز و بسته به نیاز سیستم تان
    // ذخیره کنید .
 
+    //برای دیجی پی
+    //نوع تیکت شماره همراه کاربر و شماره سفارش الزامی است.
+    // $gateway->setTicketType(11);
+    // $gateway->setMobile("09350000000");
+    // $gateway->setOrderId(1);
    return $gateway->redirect();
 
 } catch (\Exception $e) {
