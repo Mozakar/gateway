@@ -27,10 +27,10 @@ class Digipay extends PortAbstract implements PortInterface
 
     private const VERIFY_URL = 'purchases/verify/%s?type=%s';
 
-    private const DELIVER_URL = 'purchases/deliver?type={ticketType}';
+    private const DELIVER_URL = 'purchases/deliver?type=%s';
 
-    private const REFUND_URL = 'digipay/api/refunds?type=%s';
-    private const REFUND_STATUS_URL = 'digipay/api/refunds/%s';
+    private const REFUND_URL = 'refunds?type=%s';
+    private const REFUND_STATUS_URL = 'refunds/%s';
 
 	protected string $token;
     protected string $accessToken;
@@ -194,6 +194,9 @@ class Digipay extends PortAbstract implements PortInterface
 
             $endpoint = sprintf(self::VERIFY_URL, $this->trackingCode, $type);
             $response = json_decode($this->curl_post($endpoint, []), true);
+            if (isset($response['result']['status']) && $response['result']['status'] !== 0) {
+                throw new DigipayException($response['result']['status']);
+            }
             $data = array_merge($data, ['verify' => $response]);
             $this->transactionSetData($data);
             
@@ -225,7 +228,7 @@ class Digipay extends PortAbstract implements PortInterface
         }
 
         $params = [
-            'deliveryDate' => $deliverTime->getTimestamp(),
+            'deliveryDate' => $deliverTime->format('Uv'),
             'invoiceNumber' => $invoiceNumber,
             'trackingCode' => $trackingCode,
             'products' => $products,
@@ -233,9 +236,7 @@ class Digipay extends PortAbstract implements PortInterface
 
         try {
             $endpoint = sprintf(self::DELIVER_URL, $this->getTicketType());
-            $response = json_decode($this->curl_post($endpoint, $params), true);
-            $data = array_merge($this->getData(), ['deliver' => $response]);
-            $this->transactionSetData($data);
+            $response = json_decode($this->curl_post($endpoint, $params, false, false), true);
             return $response;
         } catch (Exception $e) {
             throw $e;
@@ -263,9 +264,7 @@ class Digipay extends PortAbstract implements PortInterface
 
         try {
             $endpoint = sprintf(self::REFUND_URL, $this->getTicketType());
-            $response = json_decode($this->curl_post($endpoint, $params), true);
-            $data = array_merge($this->getData(), ['refund' => $response]);
-            $this->transactionSetData($data);
+            $response = json_decode($this->curl_post($endpoint, $params, false, false), true);
             return $response;
         } catch (Exception $e) {
             throw $e;
@@ -284,7 +283,7 @@ class Digipay extends PortAbstract implements PortInterface
     {
         try {
             $endpoint = sprintf(self::REFUND_STATUS_URL, $trackingCodeOrOrderId);
-            return json_decode($this->curl_post($endpoint, []), true);
+            return json_decode($this->curl_post($endpoint, [], false, false), true);
         } catch (Exception $e) {
             throw $e;
         }
@@ -300,7 +299,7 @@ class Digipay extends PortAbstract implements PortInterface
      * @return string
      * @throws DigipayException
      */
-    function curl_post(string $url, array $params = [], bool $isAccessTokenRequest = false): string
+    function curl_post(string $url, array $params = [], bool $isAccessTokenRequest = false, bool $log = true): string
     {
         if ($this->config->get('gateway.digipay.sandbox', false)) {
             $this->baseUrl =  self::SANDBOX_URL;
@@ -331,7 +330,9 @@ class Digipay extends PortAbstract implements PortInterface
         if($info["http_code"] == 200 || $info["http_code"] == "200")
             return $res;
 
-        $this->transactionFailed();
+        if ($log) {
+            $this->transactionFailed();
+        }
         $response = json_decode($res, true);
         if (isset($response['result']['status']) && isset($response['result']['message'])) {
             throw new DigipayException($response['result']['status'], $response['result']['message']);
@@ -339,7 +340,9 @@ class Digipay extends PortAbstract implements PortInterface
         if (isset($response['result']['status']) && $response['result']['status'] !== 0) {
             throw new DigipayException($response['result']['status']);
         }
-        $this->newLog($info["http_code"], $res);
+        if ($log) {
+            $this->newLog($info["http_code"], $res);
+        }
         throw new DigipayException(-2);
     }
 
