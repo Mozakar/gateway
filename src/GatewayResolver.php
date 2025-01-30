@@ -17,6 +17,7 @@ use Mozakar\Gateway\Irankish\Irankish;
 use Mozakar\Gateway\Pasargad\Pasargad;
 use Mozakar\Gateway\SamanOld\SamanOld;
 use Mozakar\Gateway\Zarinpal\Zarinpal;
+use Mozakar\Gateway\SadadBnpl\SadadBnpl;
 use Mozakar\Gateway\Asanpardakht\Asanpardakht;
 use Mozakar\Gateway\Exceptions\RetryException;
 use Mozakar\Gateway\Exceptions\PortNotFoundException;
@@ -162,6 +163,8 @@ class GatewayResolver
 					$name = Enum::APSAN;
 				} elseif ($port InstanceOf Vandar) {
 					$name = Enum::VANDAR;
+				} elseif ($port InstanceOf SadadBnpl) {
+					$name = Enum::SADAD_BNPL;
 				} elseif ($port InstanceOf Digipay) {
 					$name = Enum::DIGIPAY;
 				} elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {

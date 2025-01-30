@@ -22,6 +22,7 @@ class Enum
 	const VANDAR = "VANDAR";
 	const APSAN = "APSAN";
 	const DIGIPAY = "DIGIPAY";
+	const SADAD_BNPL = "SADADBNPL";
 
   	static function getIPGs(){
 

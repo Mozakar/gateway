@@ -144,6 +144,17 @@ return [
         'sandbox' => false,
         'callback-url'   => '/',
     ],
+    //--------------------------------
+    // Sadad BNPL gateway
+    //--------------------------------
+    'sadad_bnpl' => [
+        'url'   => '',
+        'vpg_url'  => '',
+        'merchant'      => '',
+        'transactionKey'=> '',
+        'terminalId'    => 000000000,
+        'callback-url'  => '/'
+    ],
     //-------------------------------
     // Tables names
     //--------------------------------
