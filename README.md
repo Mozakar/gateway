@@ -27,6 +27,7 @@
  12. Vandar (جدید)
  13. Apsan (جدید)
  14. Digipay
+ 15. SADAD BNPL (MELLI BNPL)
 ----------
 
 
