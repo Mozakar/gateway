@@ -1,6 +1,6 @@
 <?php
 
-namespace Mozakar\Gateway\SadadBnpl;
+namespace Mozakar\Gateway\Sadadnnpl;
 
 use Mozakar\Gateway\Exceptions\BankException;
 

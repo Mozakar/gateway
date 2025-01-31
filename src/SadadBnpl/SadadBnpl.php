@@ -1,13 +1,13 @@
 <?php
 
-namespace Mozakar\Gateway\SadadBnpl;
+namespace Mozakar\Gateway\Sadadbnpl;
 
 use DateTime;
 use Exception;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
 
-class SadadBnpl extends PortAbstract implements PortInterface
+class Sadadbnpl extends PortAbstract implements PortInterface
 {
     private const REDIRECT_URL = '/Home?key=%s';
 	private const VERIFY_URL = '/api/v0/BnplAdvice/Verify';
