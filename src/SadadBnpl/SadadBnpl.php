@@ -9,8 +9,6 @@ use Mozakar\Gateway\PortInterface;
 
 class SadadBnpl extends PortAbstract implements PortInterface
 {
-	private const REQUEST_URL = 'https://sadad.shaparak.ir/vpg/api/v0/Request/PaymentRequest';
-
     private const REDIRECT_URL = '/Home?key=%s';
 	private const VERIFY_URL = '/api/v0/BnplAdvice/Verify';
 
@@ -47,7 +45,7 @@ class SadadBnpl extends PortAbstract implements PortInterface
 	 */
 	public function redirect()
 	{
-		$paymentUrl = $this->getBaseUrl() . sprintf(self::REDIRECT_URL, $this->token);
+		$paymentUrl = $this->getUrl(sprintf(self::REDIRECT_URL, $this->token));
 		return redirect($paymentUrl);
 	}
 
@@ -194,27 +192,24 @@ class SadadBnpl extends PortAbstract implements PortInterface
             }
 			$terminalId = $this->config->get('gateway.sadad_bnpl.terminalId');
 			$orderId = $this->getOrderId();
-			$signData = $this->signData("{$terminalId};{$orderId};{$this->amount}");
 			$dateTime = new DateTime();
 			$data = [
 					'TerminalId' => $terminalId,
 					'MerchantId' => $this->config->get('gateway.sadad_bnpl.merchant'),
 					'Amount' => $this->amount,
-					'SignData' => $signData,
 					'ReturnUrl' =>$this->getCallback(),
-					'LocalDateTime' => $dateTime->format('Y-m-d H:i:s'),
+					// 'LocalDateTime' => $dateTime->format('Y-m-d H:i:s'),
 					'OrderId' => $orderId,
 					'UserId' => $this->getMobile(),
 					'ApplicationName' => $this->getAppName(),
                     'PanAuthenticationType' => $this->getPanAuthenticationType(),
-                    'NationalCode' => $this->getNationalCode(),//reqired if panAuthenticationType us 1
+                    // 'NationalCode' => $this->getNationalCode(),//reqired if panAuthenticationType us 1
                     'CardHolderIdentity' => $this->getMobile(),//reqired if panAuthenticationType us 2
                     'SourcePanList' => '',
-                    'NationalCodeEnc' => $this->nationalCodeEncrypted,//reqired if panAuthenticationType us 3
+                    // 'NationalCodeEnc' => $this->nationalCodeEncrypted,//reqired if panAuthenticationType us 3
 
 			];
-
-			$result = json_decode($this->curl_post(self::TOKEN_URL, $data));
+			$result = json_decode($this->curl_post($this->getUrl(self::TOKEN_URL), $data));
 
 			if (isset($result->ResponseCode) && $result->ResponseCode != 0) {
 				throw new SadadBnplException($result->ResponseCode, $result->Message ?? null);
@@ -242,17 +237,15 @@ class SadadBnpl extends PortAbstract implements PortInterface
 	 */
 	protected function verifyPayment()
 	{
-		$token = $this->refId;
-        $terminalId = $this->config->get('gateway.sadad_bnpl.terminalId');
+		$token =  $this->request->get('Token', '');
 		$data = [
 				'Token' => $token,
-				'SignData' => $this->signData("{$token}:{$terminalId}"),
-                'ReturnUrl' => '', //RefererUrl
+				'SignData' => $this->signData($token),
+                'ReturnUrl' => '',
 		];
 
 		try {
-				$result = json_decode($this->curl_post(self::VERIFY_URL, $data));
-
+				$result = json_decode($this->curl_post($this->getUrl(self::VERIFY_URL, false), $data));
 				if (isset($result->ResCode) && $result->ResCode != 0) {
 					$this->transactionFailed();
 					throw new SadadBnplException($result->ResCode);
@@ -288,14 +281,14 @@ class SadadBnpl extends PortAbstract implements PortInterface
 
 
 	/**
-	 * refund
+	 * reverse
 	 *
 	 * @param  int $amount
 	 * @param  string $token
 	 * @return array
      * @throws Exception
 	 */
-	public function refund(int $amount, string $token): array
+	public function reverse(int $amount, string $token): array
 	{
         $terminalId = $this->config->get('gateway.sadad_bnpl.terminalId');
 		$data = [
@@ -303,11 +296,11 @@ class SadadBnpl extends PortAbstract implements PortInterface
             'CardAcqId' => $this->config->get('gateway.sadad_bnpl.merchant'),
             'Amount' => $amount,
             'Token' => $token,
-            'SignData' => $this->signData("{$token}:{$terminalId}"),
+            'SignData' => $this->signData($token),
 		];
 
 		try {
-            return json_decode($this->curl_post(self::REVERSE_URL, $data));
+            return json_decode($this->curl_post($this->getUrl(self::REVERSE_URL, false), $data));
         } catch (Exception $ex) {
             throw $ex;
         }
@@ -325,18 +318,20 @@ class SadadBnpl extends PortAbstract implements PortInterface
     }
 
     /**
-     * getBaseUrl
+     * getUrl
      *
+     * @param string $path
+     * @param bool $isBnpl
      * @return string
      */
-    private function getBaseUrl(): string
+    private function getUrl(string $path, bool $isBnpl = true): string
     {
         $baseUrl = $this->config->get('gateway.sadad_bnpl.url');
-        $port = $this->config->get('gateway.sadad_bnpl.port', '');
-        if(empty($port)) {
-            $port = strstr($port, ":") ? trim($port) : ":" . trim($port);
+        $vpgBaseUrl = $this->config->get('gateway.sadad_bnpl.vpg_url', '');
+        if($isBnpl) {
+            return "{$baseUrl}{$path}";
         }
-        return "{$baseUrl}{$port}";
+        return "{$vpgBaseUrl}{$path}";
     }
 	/**
      * curl_post
@@ -346,10 +341,8 @@ class SadadBnpl extends PortAbstract implements PortInterface
      * @return string
      * @throws SadadBnplException
      */
-    function curl_post(string $path, array $params = []): string
+    function curl_post(string $url, array $params = []): string
     {
-        $baseUrl = $this->getBaseUrl();
-        $url = "{$baseUrl}{$path}";
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
@@ -362,7 +355,6 @@ class SadadBnpl extends PortAbstract implements PortInterface
         $res = curl_exec($ch);
         $info = curl_getinfo($ch);
         curl_close($ch);
-
         if($info["http_code"] == 200 || $info["http_code"] == "200")
             return $res;
 
