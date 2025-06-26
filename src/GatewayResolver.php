@@ -23,6 +23,8 @@ use Mozakar\Gateway\Exceptions\RetryException;
 use Mozakar\Gateway\Exceptions\PortNotFoundException;
 use Mozakar\Gateway\Exceptions\InvalidRequestException;
 use Mozakar\Gateway\Exceptions\NotFoundTransactionException;
+// use Mozakar\Gateway\Setareaval\Setareaval;
+use Mozakar\Gateway\Zibal\Zibal;
 
 class GatewayResolver
 {
@@ -134,47 +136,45 @@ class GatewayResolver
 	 */
 	function make($port)
     {
-        if ($port InstanceOf Mellat) {
-            $name = Enum::MELLAT;
-        } elseif ($port InstanceOf Parsian) {
-            $name = Enum::PARSIAN;
-        } elseif ($port InstanceOf Saman) {
-            $name = Enum::SAMAN;
-				}
-				elseif ($port InstanceOf SamanOld) {
-            $name = Enum::SAMANOLD;
-        } elseif ($port InstanceOf Zarinpal) {
-            $name = Enum::ZARINPAL;
-        } elseif ($port InstanceOf Sadad) {
-            $name = Enum::SADAD;
-        } elseif ($port InstanceOf Asanpardakht) {
-            $name = Enum::ASANPARDAKHT;
-        } elseif ($port InstanceOf Payir) {
-            $name = Enum::PAYIR;
-        } elseif ($port InstanceOf Pasargad) {
-						$name = Enum::PASARGAD;
-				} elseif ($port InstanceOf Nikan) {
-					$name = Enum::NIKAN;
-				} elseif ($port InstanceOf Payping) {
-            $name = Enum::PAYPING;
-        } elseif ($port InstanceOf Irankish) {
-            $name = Enum::IRANKISH;
-        }	elseif ($port InstanceOf Apsan) {
-					$name = Enum::APSAN;
-				} elseif ($port InstanceOf Vandar) {
-					$name = Enum::VANDAR;
-				} elseif ($port InstanceOf SadadBnpl) {
-					$name = Enum::SADAD_BNPL;
-				} elseif ($port InstanceOf Digipay) {
-					$name = Enum::DIGIPAY;
-				} elseif (in_array(strtoupper($port), $this->getSupportedPorts())) {
-            $port = ucfirst(strtolower($port));
-            $name = strtoupper($port);
-            $class = __NAMESPACE__ . '\\' . $port . '\\' . $port;
-            $port = new $class;
-        } else {
-					throw new PortNotFoundException;
-				}
+       $portsMap = [
+			Mellat::class        => Enum::MELLAT,
+			Parsian::class       => Enum::PARSIAN,
+			Saman::class         => Enum::SAMAN,
+			SamanOld::class      => Enum::SAMANOLD,
+			Zarinpal::class      => Enum::ZARINPAL,
+			Sadad::class         => Enum::SADAD,
+			Asanpardakht::class  => Enum::ASANPARDAKHT,
+			Payir::class         => Enum::PAYIR,
+			Pasargad::class      => Enum::PASARGAD,
+			Nikan::class         => Enum::NIKAN,
+			Payping::class       => Enum::PAYPING,
+			Irankish::class      => Enum::IRANKISH,
+			Apsan::class         => Enum::APSAN,
+			Vandar::class        => Enum::VANDAR,
+			SadadBnpl::class     => Enum::SADAD_BNPL,
+			Digipay::class       => Enum::DIGIPAY,
+			Zibal::class         => Enum::ZIBAL,
+			// Setareaval::class    => Enum::SETAREAVAL,
+		];
+
+		foreach ($portsMap as $class => $enumName) {
+			if ($port instanceof $class) {
+				$name = $enumName;
+				break;
+			}
+		}
+
+		if (!isset($name)) {
+			if (in_array(strtoupper($port), $this->getSupportedPorts())) {
+				$port = ucfirst(strtolower($port));
+				$name = strtoupper($port);
+				$class = __NAMESPACE__ . '\\' . $port . '\\' . $port;
+				$port = new $class;
+			} else {
+				throw new PortNotFoundException;
+			}
+		}
+
             
         $this->port = $port;
         $this->port->setConfig($this->config); // injects config

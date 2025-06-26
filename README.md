@@ -18,7 +18,7 @@
  3. SAMAN
  4. PARSIAN
  5. PASARGAD(جدید)
- 6. ZARINPAL
+ 6. ZARINPAL (ورژن 4)
  7. ASAN PARDAKHT 
  8. PAY.IR ( برای فراخوانی از 'payir' استفاده نمایید)
  9. Irankish (**جدید** -  برای فراخوانی از 'irankish' استفاده نمایید)
@@ -28,6 +28,7 @@
  13. Apsan (جدید)
  14. Digipay
  15. SADAD BNPL (MELLI BNPL)
+ 16. Zibal (جدید)
 ----------
 
 

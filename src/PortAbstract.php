@@ -105,9 +105,9 @@ abstract class PortAbstract
 	/**
 	 * Order id
 	 *
-	 * @var int
+	 * @var mixed
 	 */
-	protected int $orderId;
+	protected $orderId;
 
 	/**
 	 * redirect url
@@ -346,7 +346,7 @@ abstract class PortAbstract
 	 * @param $orderId
 	 * @return mixed
 	 */
-	function setOrderId(int $orderId)
+	function setOrderId($orderId)
 	{
 		$this->orderId = $orderId;
 	}
@@ -354,7 +354,7 @@ abstract class PortAbstract
 	/**
 	 * get order id
 	 */
-	function getOrderId(): int
+	function getOrderId(): mixed
 	{
 		return $this->orderId;
 	}

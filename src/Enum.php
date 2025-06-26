@@ -23,6 +23,8 @@ class Enum
 	const APSAN = "APSAN";
 	const DIGIPAY = "DIGIPAY";
 	const SADAD_BNPL = "SADADBNPL";
+	const SETAREAVAL = "SETAREAVAL";
+	const ZIBAL = "ZIBAL";
 
   	static function getIPGs(){
 

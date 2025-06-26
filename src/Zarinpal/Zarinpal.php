@@ -67,7 +67,7 @@ class Zarinpal extends PortAbstract implements PortInterface
 	 */
 	public function set($amount)
 	{
-		$this->amount = ($amount / 10);
+		$this->amount = intval($amount);
 
 		return $this;
 	}
