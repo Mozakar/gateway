@@ -6,7 +6,8 @@ use Mozakar\Gateway\Exceptions\BankException;
 
 class ZarinpalException extends BankException
 {
-    public static $errors = array(
+    public static $errors = [
+        0  => 'مشکلی رخ داده است',
         -1 => 'اطلاعات ارسال شده ناقص است.',
 		-2 => 'IP و یا مرچنت کد پذیرنده صحیح نیست',
         -3 => 'رقم باید بالای 100 تومان باشد',
@@ -18,7 +19,7 @@ class ZarinpalException extends BankException
         -54 => 'درخواست مورد نظر آرشیو شده',
         100 => 'عملیات با موفقیت انجام شد',
         101 => 'عملیات پرداخت با موفقیت انجام شده ولی قبلا عملیات PaymentVertification بر روی این تراکنش انجام شده است',
-    );
+    ];
 
     public function __construct($errorId)
     {

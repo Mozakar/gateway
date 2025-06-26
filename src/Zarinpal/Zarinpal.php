@@ -2,42 +2,38 @@
 
 namespace Mozakar\Gateway\Zarinpal;
 
-use DateTime;
 use Illuminate\Support\Facades\Request;
 use Mozakar\Gateway\Enum;
-use SoapClient;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
 
 class Zarinpal extends PortAbstract implements PortInterface
 {
-	/**
-	 * Address of germany SOAP server
-	 *
-	 * @var string
-	 */
-	protected $germanyServer = 'https://de.zarinpal.com/pg/services/WebGate/wsdl';
 
 	/**
-	 * Address of iran SOAP server
+	 * Address of base url
 	 *
 	 * @var string
 	 */
-	protected $iranServer = 'https://ir.zarinpal.com/pg/services/WebGate/wsdl';
+	protected $baseUrl = 'https://payment.zarinpal.com/pg/';
+
+	/**
+	 * Address of sandbox
+	 *
+	 * @var string
+	 */
+	protected $sandboxServer = 'https://sandbox.zarinpal.com/pg/';
+	
+	private const  REQUEST_PATH = 'v4/payment/request.json';
+	private const  PAY_PATH = 'StartPay/';
+	private const  VERIFY_PATH = 'v4/payment/verify.json';
     
-    /**
-	 * Address of sandbox SOAP server
-	 *
-	 * @var string
-	 */
-	protected $sandboxServer = 'https://sandbox.zarinpal.com/pg/services/WebGate/wsdl';
-
 	/**
-	 * Address of main SOAP server
+	 * server url
 	 *
 	 * @var string
 	 */
-	protected $serverUrl;
+	protected $serverUrl = '';
 
 	/**
 	 * Payment Description
@@ -60,26 +56,6 @@ class Zarinpal extends PortAbstract implements PortInterface
 	 */
 	protected $mobileNumber;
 
-	/**
-	 * Address of gate for redirect
-	 *
-	 * @var string
-	 */
-	protected $gateUrl = 'https://www.zarinpal.com/pg/StartPay/';
-    
-    /**
-	 * Address of sandbox gate for redirect
-	 *
-	 * @var string
-	 */
-	protected $sandboxGateUrl = 'https://sandbox.zarinpal.com/pg/StartPay/';
-
-	/**
-	 * Address of zarin gate for redirect
-	 *
-	 * @var string
-	 */
-	protected $zarinGateUrl = 'https://www.zarinpal.com/pg/StartPay/$Authority/ZarinGate';
 
 	public function boot()
 	{
@@ -111,16 +87,7 @@ class Zarinpal extends PortAbstract implements PortInterface
 	 */
 	public function redirect()
 	{
-		switch ($this->config->get('gateway.zarinpal.type')) {
-			case 'zarin-gate':
-				return \Redirect::to(str_replace('$Authority', $this->refId, $this->zarinGateUrl));
-				break;
-
-			case 'normal':
-			default:
-				return \Redirect::to($this->gateUrl . $this->refId);
-				break;
-		}
+		return \Redirect::to($this->serverUrl . self::PAY_PATH . $this->refId);
 	}
 
 	/**
@@ -169,33 +136,41 @@ class Zarinpal extends PortAbstract implements PortInterface
 	{
 		$this->newTransaction();
 
-		$fields = array(
-			'MerchantID' => $this->config->get('gateway.zarinpal.merchant-id'),
-			'Amount' => $this->amount,
-			'CallbackURL' => $this->getCallback(),
-			'Description' => $this->description ? $this->description : $this->config->get('gateway.zarinpal.description', ''),
-			'Email' => $this->email ? $this->email :$this->config->get('gateway.zarinpal.email', ''),
-			'Mobile' => $this->mobileNumber ? $this->mobileNumber : $this->config->get('gateway.zarinpal.mobile', ''),
-		);
+		$fields = [
+			'merchant_id' => $this->config->get('gateway.zarinpal.merchant-id'),
+			'amount' => $this->amount,
+			'callback_url' => $this->getCallback(),
+			'description' => $this->description ? $this->description : $this->config->get('gateway.zarinpal.description', ''),
+			'metadata' => [
+				'email' => $this->email ? $this->email :$this->config->get('gateway.zarinpal.email', ''),
+				'mobile' => $this->mobileNumber ? $this->mobileNumber : $this->config->get('gateway.zarinpal.mobile', ''),
+			]
+		];
 
 		try {
-			$soap = new SoapClient($this->serverUrl, ['encoding' => 'UTF-8']);
-			$response = $soap->PaymentRequest($fields);
-
-		} catch (\SoapFault $e) {
+			$res = $this->curl_post($this->serverUrl . self::REQUEST_PATH, $fields);
+			$res = json_decode($res, true);
+			if (isset($res['data']['code'])) {
+				if ($res['data']['code'] == 100) {
+					$this->refId = $res['data']['authority'];
+					$this->transactionSetRefId();
+				} else {
+					$this->transactionFailed();
+					$this->newLog($res['data']['code'], ZarinpalException::$errors[$res['data']['code']]);
+					throw new ZarinpalException($res['data']['code']);
+				}
+				
+			} else {
+				$this->transactionFailed();
+				$this->newLog(-22, ZarinpalException::$errors[-22]);
+				throw new ZarinpalException(-22);
+			}
+		} catch (\Exception $e) {
 			$this->transactionFailed();
-			$this->newLog('SoapFault', $e->getMessage());
+			$this->newLog(0, $e->getMessage());
 			throw $e;
 		}
 
-		if ($response->Status != 100) {
-			$this->transactionFailed();
-			$this->newLog($response->Status, ZarinpalException::$errors[$response->Status]);
-			throw new ZarinpalException($response->Status);
-		}
-
-		$this->refId = $response->Authority;
-		$this->transactionSetRefId();
 	}
 
 	/**
@@ -229,55 +204,53 @@ class Zarinpal extends PortAbstract implements PortInterface
 	protected function verifyPayment()
 	{
 
-		$fields = array(
-			'MerchantID' => $this->config->get('gateway.zarinpal.merchant-id'),
-			'Authority' => $this->refId,
-			'Amount' => $this->amount,
-		);
+		$fields = [
+			'merchant_id' => $this->config->get('gateway.zarinpal.merchant-id'),
+			'authority' => $this->refId,
+			'amount' => $this->amount,
+		];
 
+		$res = [];
 		try {
-			$soap = new SoapClient($this->serverUrl, ['encoding' => 'UTF-8']);
-			$response = $soap->PaymentVerification($fields);
+			$response = $this->curl_post($this->serverUrl . self::VERIFY_PATH, $fields);
+			$res = json_decode($response, true);
+			$this->transactionSetData(['verify' => $res]);
+			if (!isset($res['data']['code']) || ($res['data']['code'] != 100 && $res['data']['code'] != 101)) {
+				$code = isset($res['data']['code']) ? $res['data']['code'] : -22;
+				$this->transactionFailed();
+				$this->newLog($code, ZarinpalException::$errors[$code]);
+				throw new ZarinpalException($code);
+			}
 
-		} catch (\SoapFault $e) {
+		} catch (\Exception $e) {
 			$this->transactionFailed();
-			$this->newLog('SoapFault', $e->getMessage());
+			$this->newLog(0, $e->getMessage());
 			throw $e;
 		}
 
-		if ($response->Status != 100 && $response->Status != 101) {
-			$this->transactionFailed();
-			$this->newLog($response->Status, ZarinpalException::$errors[$response->Status]);
-			throw new ZarinpalException($response->Status);
-		}
-
-		$this->trackingCode = $response->RefID;
+		$this->trackingCode = $res['data']['ref_id'];
 		$this->transactionSucceed();
-		$this->newLog($response->Status, Enum::TRANSACTION_SUCCEED_TEXT);
+		$this->newLog($res['data']['code'], Enum::TRANSACTION_SUCCEED_TEXT);
 		return true;
 	}
 
 	/**
-	 * Set server for soap transfers data
+	 * Set server
 	 *
 	 * @return void
 	 */
 	protected function setServer()
 	{
-		$server = $this->config->get('gateway.zarinpal.server', 'germany');
+		$server = $this->config->get('gateway.zarinpal.server', 'iran');
 		switch ($server) {
 			case 'iran':
-				$this->serverUrl = $this->iranServer;
+				$this->serverUrl = $this->baseUrl;
 				break;
-                
 			case 'test':
 				$this->serverUrl = $this->sandboxServer;
-				$this->gateUrl = $this->sandboxGateUrl;
 				break;
-
-			case 'germany':
 			default:
-				$this->serverUrl = $this->germanyServer;
+				$this->serverUrl = $this->baseUrl;
 				break;
 		}
 	}
@@ -315,4 +288,35 @@ class Zarinpal extends PortAbstract implements PortInterface
 	{
 		$this->mobileNumber = $number;
 	}
+
+	public function curl_post($url, $params)
+    {
+        $headers = [
+					'Content-Type: application/json',
+					'Accept: application/json'
+				];
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        $res = curl_exec($ch);
+        $info = curl_getinfo($ch);
+        curl_close($ch);
+
+        if($info["http_code"] == 200 || $info["http_code"] == "200")
+            return $res;
+
+        $result = json_decode($res);
+		
+		if (isset($result['data']['code'])) {
+			throw new ZarinpalException($result['data']['code']);
+		}
+
+		throw new ZarinpalException(0);
+    }
 }
