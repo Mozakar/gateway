@@ -14,12 +14,12 @@ class Zibal extends PortAbstract implements PortInterface
 	 *
 	 * @var string
 	 */
-	protected $serverUrl = 'https://gateway.zibal.ir/v1/';
+	protected $serverUrl = 'https://gateway.zibal.ir/';
 
-	private const  REQUEST_PATH = 'request';
+	private const  REQUEST_PATH = 'v1/request';
 	private const  PAY_PATH = 'start/';
-	private const  VERIFY_PATH = 'verify';
-	private const INQUIRY_PATH = 'inquiry';
+	private const  VERIFY_PATH = 'v1/verify';
+	private const INQUIRY_PATH = 'v1/inquiry';
 
 
 	/**
@@ -83,7 +83,7 @@ class Zibal extends PortAbstract implements PortInterface
 	 */
 	public function redirect()
 	{
-		return \Redirect::to($this->serverUrl . self::PAY_PATH . "/" . $this->refId);
+		return \Redirect::to($this->serverUrl . self::PAY_PATH  . $this->refId);
 	}
 
 	/**
@@ -181,9 +181,10 @@ class Zibal extends PortAbstract implements PortInterface
 	protected function userPayment()
 	{
 		$this->authority = $this->request->get('trackId', '');
-		$status = $this->request->get('success', 0);
+		$success = $this->request->get('success', 0);
+		$status = $this->request->get('status', 0);
 
-		if ($status == 1) {
+		if ($success == 1) {
 			return true;
 		}
 

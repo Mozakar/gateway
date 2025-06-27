@@ -175,7 +175,7 @@ abstract class PortAbstract
 	/**
 	 * Get port id, $this->port
 	 *
-	 * @return int
+	 * @return mixed
 	 */
 	function getPortName()
 	{
@@ -185,7 +185,7 @@ abstract class PortAbstract
 	/**
 	 * Get port id, $this->port
 	 *
-	 * @return int
+	 * @return void
 	 */
 	function setPortName($name)
 	{
@@ -219,11 +219,12 @@ abstract class PortAbstract
 	 *
 	 * @param string $description
 	 *
-	 * @return void
+	 * @return $this
 	 */
 	function setCustomInvoiceNo ($invoiceNo)
 	{
 		$this->customInvoiceNo = $invoiceNo;
+		return $this;
 	}
 
 	/**
@@ -235,10 +236,17 @@ abstract class PortAbstract
 	{
 		return $this->customInvoiceNo;
 	}
-
+	
+	/**
+	 * useCache
+	 *
+	 * @param  bool $use
+	 * @return $this;
+	 */
 	function useCache (bool $use = true)
 	{
 		$this->useCache = $use;
+		return $this;
 	}
 
 	/**
@@ -246,11 +254,12 @@ abstract class PortAbstract
 	 *
 	 * @param string $factorNumber
 	 *
-	 * @return void
+	 * @return $this
 	 */
 	function setFactorNumber ($factorNumber)
 	{
 		$this->factorNumber = $factorNumber;
+		return $this;
 	}
 
 	/**
@@ -269,11 +278,12 @@ abstract class PortAbstract
 	 *
 	 * @param string $mobile
 	 *
-	 * @return void
+	 * @return $this
 	 */
 	function setMobile ($mobile)
 	{
 		$this->mobile = $mobile;
+		return $this;
 	}
 
 	/**
@@ -344,11 +354,12 @@ abstract class PortAbstract
 	/**
 	 * Sets order id
 	 * @param $orderId
-	 * @return mixed
+	 * @return $this
 	 */
 	function setOrderId($orderId)
 	{
 		$this->orderId = $orderId;
+		return $this;
 	}
 
 	/**
@@ -362,17 +373,18 @@ abstract class PortAbstract
 	/**
 	 * Set redirect url
 	 * @param $redirectUrl
-	 * @return mixed
+	 * @return $this
 	 */
 	function setRedirectUrl($redirectUrl)
 	{
 		$this->redirectUrl = $redirectUrl;
+		return $this;
 	}
 
 	/**
 	 * get redirectUrl
 	 */
-	function getRedirectUrl(): int
+	function getRedirectUrl(): mixed
 	{
 		return $this->redirectUrl;
 	}
