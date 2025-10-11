@@ -23,6 +23,7 @@ use Mozakar\Gateway\Exceptions\RetryException;
 use Mozakar\Gateway\Exceptions\PortNotFoundException;
 use Mozakar\Gateway\Exceptions\InvalidRequestException;
 use Mozakar\Gateway\Exceptions\NotFoundTransactionException;
+use Mozakar\Gateway\Miligold\Miligold;
 // use Mozakar\Gateway\Setareaval\Setareaval;
 use Mozakar\Gateway\Zibal\Zibal;
 
@@ -155,6 +156,7 @@ class GatewayResolver
 			Digipay::class       => Enum::DIGIPAY,
 			Zibal::class         => Enum::ZIBAL,
 			// Setareaval::class    => Enum::SETAREAVAL,
+			Miligold::class	=> Enum::MILIGOLD,
 		];
 
 		foreach ($portsMap as $class => $enumName) {

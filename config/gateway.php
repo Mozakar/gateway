@@ -173,6 +173,16 @@ return [
         'merchant'      => '',
         'callback-url'  => '/'
     ],
+
+    //--------------------------------
+    // Mili Gold gateway
+    //--------------------------------
+    'mili_gold' => [
+        'base_url'      => 'https://demo.mymili.ir/',
+        'merchant'      => '',
+        'terminal'      => '',
+        'callback-url'  => '/'
+    ],
     //-------------------------------
     // Tables names
     //--------------------------------

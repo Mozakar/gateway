@@ -25,6 +25,7 @@ class Enum
 	const SADAD_BNPL = "SADADBNPL";
 	const SETAREAVAL = "SETAREAVAL";
 	const ZIBAL = "ZIBAL";
+	const MILIGOLD = "MILIGOLD";
 
   	static function getIPGs(){
 

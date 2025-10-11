@@ -1,9 +1,10 @@
 <?php
 namespace Mozakar\Gateway;
 
-use Illuminate\Support\Facades\Request;
-use Mozakar\Gateway\Enum;
 use Carbon\Carbon;
+use Mozakar\Gateway\Enum;
+use Mozakar\Gateway\Currency;
+use Illuminate\Support\Facades\Request;
 
 abstract class PortAbstract
 {
@@ -116,6 +117,12 @@ abstract class PortAbstract
 	 */
 	protected string $redirectUrl;
 
+	/**
+	 * Currency
+	 *
+	 * @var string
+	 */
+	protected string $currency = Currency::RIAL;
 
 	/**
 	 * useCache
@@ -596,5 +603,20 @@ abstract class PortAbstract
 	protected function cacheKey(string $key): string
 	{
 		return "Mozakar_Gateway_" . $key;
+	}
+
+	protected function getCurrency(): string
+	{
+		return $this->currency;
+	}
+
+	protected function setCurrency(string $currency): static
+	{
+		$currency = strtoupper($currency);
+		if (!in_array($currency, Currency::ALL)) {
+			throw new \Exception("Currency is not valid, allowed currencies are: " . implode(", ", Currency::ALL));
+		}
+		$this->currency = $currency;
+		return $this;
 	}
 }
