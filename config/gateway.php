@@ -148,11 +148,12 @@ return [
     // Sadad BNPL gateway
     //--------------------------------
     'sadad_bnpl' => [
-        'url'   => '',
-        'vpg_url'  => '',
+        'url'   => 'https://op-cpg-wrapper.bmicc.ir:44377/WEBAPIWrapper/ConsumerExternalWebapiWrapper',
+        'username' => '',
+        'password' => '',
         'merchant'      => '',
-        'transactionKey'=> '',
-        'terminalId'    => 000000000,
+        'encryptionKey'=> '',
+        'encryptionVector'=> '',
         'callback-url'  => '/'
     ],
 

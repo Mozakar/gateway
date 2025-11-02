@@ -2,24 +2,20 @@
 
 namespace Mozakar\Gateway\Sadadbnpl;
 
-use DateTime;
 use Exception;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
+use Mozakar\Gateway\Currency;
 
 class Sadadbnpl extends PortAbstract implements PortInterface
 {
-    private const REDIRECT_URL = '/Home?key=%s';
-	private const VERIFY_URL = '/api/v0/BnplAdvice/Verify';
+	private const VERIFY_URL = 'BNPL/Financial/CPG/VerifyTransaction';
 
-	private const TOKEN_URL = '/Bnpl/GenerateKey';
-    private const REVERSE_URL = '/api/v0/BnplReverseRequest';
+	private const TOKEN_URL = 'CPG/Security/Token/RequestToken';
 
-	private string $appName = 'Bnpl';
-    private int $panAuthenticationType = 2;
+	private string $paymentUrl = '';
 
-    private string $nationalCode = "";
-    private string $nationalCodeEncrypted = "";
+    protected string $currency = Currency::RIAL;
 	/**
 	 * {@inheritdoc}
 	 */
@@ -29,7 +25,21 @@ class Sadadbnpl extends PortAbstract implements PortInterface
 
 		return $this;
 	}
-
+	/**
+	 * Set currency
+	 * @param string $currency
+	 * @return $this
+	 */
+    protected function setCurrency(string $currency): static
+	{
+		$currency = strtoupper($currency);
+        $allowedCurrencies = [Currency::RIAL, Currency::TOMAN];
+		if (!in_array($currency, $allowedCurrencies)) {
+			throw new \Exception("Currency is not valid, allowed currencies are: " . implode(", ", $allowedCurrencies));
+		}
+		$this->currency = $currency;
+		return $this;
+	}
 	/**
 	 * {@inheritdoc}
 	 */
@@ -45,8 +55,7 @@ class Sadadbnpl extends PortAbstract implements PortInterface
 	 */
 	public function redirect()
 	{
-		$paymentUrl = $this->getUrl(sprintf(self::REDIRECT_URL, $this->token));
-		return redirect($paymentUrl);
+		return redirect($this->paymentUrl);
 	}
 
 	/**
@@ -83,87 +92,6 @@ class Sadadbnpl extends PortAbstract implements PortInterface
 		return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
 	}
 
-	/**
-     * Set Application Name function
-     *
-     * @return $this
-     */
-    public function setAppName(string $name): self
-    {
-        $this->appName = $name;
-
-        return $this;
-    }
-
-    /**
-     * Get Application Name function
-     */
-    public function getAppName(): ?string
-    {
-        return $this->appName ?? 'Bnpl';
-    }
-
-    /**
-     * Set pan authentication type function
-     * @param int $panAuthenticationType
-     * 1 => national code, 2 => mobile, 3 => encrypted natinal code
-     * @return $this
-     */
-    public function setPanAuthenticationType(int $panAuthenticationType): self
-    {
-        $this->panAuthenticationType = $panAuthenticationType;
-        return $this;
-    }
-
-    /**
-     * Get pan authentication type
-     * @return int
-     */
-    public function getPanAuthenticationType(): int
-    {
-        return $this->panAuthenticationType;
-    }
-
-    /**
-     * Set natinal code function
-     * @param string $nationalCode
-     * @return $this
-     */
-    public function setNationalCode(string $nationalCode): self
-    {
-        $this->nationalCode = $nationalCode;
-        return $this;
-    }
-
-    /**
-     * Get natinal code
-     * @return string
-     */
-    public function getNationalCode(): string
-    {
-        return $this->nationalCode;
-    }
-
-    /**
-     * Set encrypted natinal code function
-     * @param string $nationalCodeEncrypted
-     * @return $this
-     */
-    public function setNationalCodeEncrypted(string $nationalCodeEncrypted): self
-    {
-        $this->nationalCodeEncrypted = $nationalCodeEncrypted;
-        return $this;
-    }
-
-    /**
-     * Get encrypted natinal code
-     * @return string
-     */
-    public function getNationalCodeEncrypted(): string
-    {
-        return $this->nationalCodeEncrypted;
-    }
-
     /**
 	 * Send pay request to server
 	 *
@@ -175,52 +103,31 @@ class Sadadbnpl extends PortAbstract implements PortInterface
 	{
 		$this->newTransaction();
 		try {
-            if ($this->getPanAuthenticationType() == 1) {
-                if (empty($this->getNationalCode()) || strlen($this->getNationalCode()) != 10) {
-
-                }
-            } elseif($this->getPanAuthenticationType() == 2) {
-                if (empty($this->getMobile())) {
-
-                }
-            } elseif($this->getPanAuthenticationType() == 3) {
-                if (empty($this->getNationalCodeEncrypted())) {
-
-                }
-            } else {
-
-            }
-			$terminalId = $this->config->get('gateway.sadad_bnpl.terminalId');
-			$orderId = $this->getOrderId();
-			$dateTime = new DateTime();
-			$data = [
-					'TerminalId' => $terminalId,
-					'MerchantId' => $this->config->get('gateway.sadad_bnpl.merchant'),
-					'Amount' => $this->amount,
+            $encryptedPassword = $this->encryptAES($this->config->get('gateway.sadad_bnpl.password'));
+			$amount = $this->amount;
+            if($this->currency == Currency::TOMAN) {
+				$amount = $this->amount * 10;
+			}
+            $data = [
+					'ServiceUserName' => $this->config->get('gateway.sadad_bnpl.username'),
+					'ServicePassword' => $encryptedPassword,
+					'MerchantNumber' => $this->config->get('gateway.sadad_bnpl.merchant'),
+					'Amount' => $amount,
 					'ReturnUrl' =>$this->getCallback(),
-					// 'LocalDateTime' => $dateTime->format('Y-m-d H:i:s'),
-					'OrderId' => $orderId,
-					'UserId' => $this->getMobile(),
-					'ApplicationName' => $this->getAppName(),
-                    'PanAuthenticationType' => $this->getPanAuthenticationType(),
-                    // 'NationalCode' => $this->getNationalCode(),//reqired if panAuthenticationType us 1
-                    'CardHolderIdentity' => $this->getMobile(),//reqired if panAuthenticationType us 2
-                    'SourcePanList' => '',
-                    // 'NationalCodeEnc' => $this->nationalCodeEncrypted,//reqired if panAuthenticationType us 3
+					'CellNumber' => $this->getMobile(),
 
 			];
-			$result = json_decode($this->curl_post($this->getUrl(self::TOKEN_URL), $data));
-
-			if (isset($result->ResponseCode) && $result->ResponseCode != 0) {
-				throw new SadadBnplException($result->ResponseCode, $result->Message ?? null);
+			$result = json_decode($this->curl_post(self::TOKEN_URL, $data), true);
+			$hasErrors = $result['notification']['hasErrors'] ?? false;
+			if ($hasErrors) {
+				$messages = array_column($result['notification']['errors'] ?? [], 'message');
+				$message = implode(', ', $messages);
+				$code = $result['notification']['errors'][0]['code'] ?? -1;
+            	throw new SadadBnplException($code, $message);
 			}
 
-			if (! isset($result->BnplKey)) {
-                throw new SadadBnplException(-2,json_encode($result));
-			}
-
-			$this->token = $result->BnplKey;
-			$this->refId = $result->BnplKey;
+			$this->refId = $result['result']['entity']['token'];
+			$this->paymentUrl = $result['result']['entity']['redirectURL'] ?? '';
 			$this->transactionSetRefId();
 
 		} catch (Exception $e) {
@@ -237,39 +144,31 @@ class Sadadbnpl extends PortAbstract implements PortInterface
 	 */
 	protected function verifyPayment()
 	{
-		$token =  $this->request->get('Token', '');
+		$token =  $this->request->get('tv', '');
+		$encryptedPassword = $this->encryptAES($this->config->get('gateway.sadad_bnpl.password'));
 		$data = [
 				'Token' => $token,
-				'SignData' => $this->signData($token),
-                'ReturnUrl' => '',
+				'serviceUserName' => $this->config->get('gateway.sadad_bnpl.username'),
+                'servicePassword' => $encryptedPassword,
 		];
 
 		try {
-				$result = json_decode($this->curl_post($this->getUrl(self::VERIFY_URL, false), $data));
-				if (isset($result->ResCode) && $result->ResCode != 0) {
+				$result = json_decode($this->curl_post(self::VERIFY_URL, $data), true);
+                $hasErrors = $result['notification']['hasErrors'] ?? false;
+                if ($hasErrors) {
+                    $messages = array_column($result['notification']['errors'] ?? [], 'message');
+                    $message = implode(', ', $messages);
+                    $code = $result['notification']['errors'][0]['code'] ?? -1;
+                    throw new SadadBnplException($code, $message);
+                }
+				if (!isset($result['Result']['entity']['IsApproved']) || $result['Result']['entity']['IsApproved'] == false) {
 					$this->transactionFailed();
-					throw new SadadBnplException($result->ResCode);
-				}
-				if (
-                    !isset(
-                            $result->Amount,
-                            $result->SystemTraceNo,
-                            $result->RetrivalRefNo,
-                            $result->ResCode
-                    )
-				) {
-						$this->transactionFailed();
-						throw new SadadBnplException(-3);
-				}
-
-				if ($result->ResCode != 0) {
-					$this->transactionFailed();
-					throw new SadadBnplException($result->ResCode);
+					throw new SadadBnplException(-100);
 				}
 
 				$data = array_merge($data, ['verify' => $result]);
 				$this->transactionSetData($data);
-				$this->trackingCode = $result->SystemTraceNo;
+				$this->trackingCode =$result['Result']['entity']['RefNumber'] ?? '';
 				$this->transactionSucceed();
 			} catch (Exception $ex) {
 				$this->newLog('Exception', $ex->getMessage());
@@ -278,98 +177,78 @@ class Sadadbnpl extends PortAbstract implements PortInterface
 			}
 	}
 
-
-
-	/**
-	 * reverse
-	 *
-	 * @param  int $amount
-	 * @param  string $token
-	 * @return array
-     * @throws Exception
-	 */
-	public function reverse(int $amount, string $token): array
-	{
-        $terminalId = $this->config->get('gateway.sadad_bnpl.terminalId');
-		$data = [
-            'TerminalId' => $terminalId,
-            'CardAcqId' => $this->config->get('gateway.sadad_bnpl.merchant'),
-            'Amount' => $amount,
-            'Token' => $token,
-            'SignData' => $this->signData($token),
-		];
-
-		try {
-            return json_decode($this->curl_post($this->getUrl(self::REVERSE_URL, false), $data));
-        } catch (Exception $ex) {
-            throw $ex;
-        }
-	}
-
 	 /**
-     * Sign Data function
-     */
-    private function signData(string $str): string
-    {
-        $key = base64_decode($this->config->get('gateway.sadad_bnpl.transactionKey'));
-        $ciphertext = openssl_encrypt($str, 'DES-EDE3', $key, OPENSSL_RAW_DATA);
-
-        return base64_encode($ciphertext);
-    }
-
-    /**
-     * getUrl
-     *
-     * @param string $path
-     * @param bool $isBnpl
+     * Encrypt AES function
+     * @param string $input
      * @return string
      */
-    private function getUrl(string $path, bool $isBnpl = true): string
+    private function encryptAES(string $input): string
     {
-        $baseUrl = $this->config->get('gateway.sadad_bnpl.url');
-        $vpgBaseUrl = $this->config->get('gateway.sadad_bnpl.vpg_url', '');
-        if($isBnpl) {
-            return "{$baseUrl}{$path}";
+        try {
+            // Decode the base64 encoded key and IV
+            $keyDecoded = base64_decode($this->config->get('gateway.sadad_bnpl.encryptionKey'));
+            $ivDecoded = base64_decode($this->config->get('gateway.sadad_bnpl.encryptionVector'));
+
+            // Encrypt using AES-128-CBC with PKCS7 padding (default in OpenSSL)
+            $encrypted = openssl_encrypt(
+                $input,
+                'AES-128-CBC',
+                $keyDecoded,
+                OPENSSL_RAW_DATA,
+                $ivDecoded
+            );
+
+            if ($encrypted === false) {
+                return '';
+            }
+
+            // Return base64 encoded result
+            return base64_encode($encrypted);
+
+        } catch (Exception $e) {
+            return '';
         }
-        return "{$vpgBaseUrl}{$path}";
     }
 	/**
      * curl_post
      *
-     * @param  string $path
+     * @param  string $serviceName
      * @param  array $params
      * @return string
      * @throws SadadBnplException
      */
-    function curl_post(string $url, array $params = []): string
+    function curl_post(string $serviceName, array $params = []): string
     {
+		$url = $this->config->get('gateway.sadad_bnpl.url', 'https://op-cpg-wrapper.bmicc.ir:44377/WEBAPIWrapper/ConsumerExternalWebapiWrapper');
+		$body = [
+			'ServiceName' => $serviceName,
+			'InputValue' => $params,
+		];
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/json; charset=UTF-8',
         ]);
         $res = curl_exec($ch);
         $info = curl_getinfo($ch);
         curl_close($ch);
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
-
-        $this->transactionFailed();
-        $response = json_decode($res);
-        if (isset($response->ResponseCode)) {
-            $message = isset($response->Message) ? $response->Message : '';
-            throw new SadadBnplException($response->ResponseCode, $message);
-        }
-        if (isset($response->ResCode)) {
-            $message = isset($response->Description) ? $response->Description : '';
-            throw new SadadBnplException($response->ResCode, $message);
+        if($info["http_code"] == 200 || $info["http_code"] == "200") {
+			return $res;
+		}
+        $response = json_decode($res, true);
+        if (isset($response['notification']['errors'])) {
+            $messages = array_column($response['notification']['errors'] ?? [], 'message');
+			$message = implode(', ', $messages);
+			$code = $response['notification']['errors'][0]['code'] ?? -1;
+            throw new SadadBnplException($code, $message);
         }
         $this->newLog($info["http_code"], $res);
-        throw new SadadBnplException(-1);
+        throw new SadadBnplException(-100);
     }
 
 }
