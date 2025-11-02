@@ -129,8 +129,12 @@ class Miligold extends PortAbstract implements PortInterface
 			$miliPrice = 0;
 			if($this->getCurrency() != Currency::MILI) {
 				$price = $this->getPrice();
-				if (isset($price['code']) && $price['code'] != 0) {
-					throw new MiligoldException($price['code'], $price['message'] ?? null);
+				if (!isset($price['statusCode']) && !isset($price['code'])) {
+					throw new MiligoldException(-3);
+				}
+				$statusCode = $price['statusCode'] ?? $price['code'];
+				if ($statusCode != 0) {
+					throw new MiligoldException($statusCode, $price['message'] ?? null);
 				}
 				if($this->getCurrency() == Currency::TOMAN) {
 					$this->amount = $this->amount * 10;
