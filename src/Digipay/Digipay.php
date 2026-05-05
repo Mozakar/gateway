@@ -25,7 +25,7 @@ class Digipay extends PortAbstract implements PortInterface
 
     private const REQUEST_URL = 'tickets/business?type=%s';
 
-    private const VERIFY_URL = 'purchases/verify/%s?type=%s';
+    private const VERIFY_URL = 'purchases/verify/?type=%s';
 
     private const DELIVER_URL = 'purchases/deliver?type=%s';
 
@@ -171,7 +171,7 @@ class Digipay extends PortAbstract implements PortInterface
         if (!$this->callbackUrl)
             $this->callbackUrl = $this->config->get('gateway.payping.callback-url');
 
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
+        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId(), 'providerId' => $this->getOrderId()]);
 
         return $url;
     }
@@ -191,9 +191,13 @@ class Digipay extends PortAbstract implements PortInterface
             $data = array_merge($this->getData(), ['callback_data' => $callbackData]);
             $this->transactionSetData($data);
             $this->trackingCode = $callbackData['trackingCode'] ?? '';
-
-            $endpoint = sprintf(self::VERIFY_URL, $this->trackingCode, $type);
-            $response = json_decode($this->curl_post($endpoint, []), true);
+            $providerId = $callbackData['providerId'] ?? '';
+            $params = [
+                'trackingCode' =>  $this->trackingCode,
+                'providerId' =>  $providerId,
+            ];
+            $endpoint = sprintf(self::VERIFY_URL, $type);
+            $response = json_decode($this->curl_post($endpoint, $params), true);
             if (isset($response['result']['status']) && $response['result']['status'] !== 0) {
                 throw new DigipayException($response['result']['status']);
             }
