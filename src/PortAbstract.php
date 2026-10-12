@@ -6,8 +6,14 @@ use Mozakar\Gateway\Enum;
 use Mozakar\Gateway\Currency;
 use Illuminate\Support\Facades\Request;
 
+#[\AllowDynamicProperties]
 abstract class PortAbstract
 {
+	/**
+	 * @var \Illuminate\Database\DatabaseManager
+	 */
+	protected $db;
+
 	/**
 	 * request
 	 *

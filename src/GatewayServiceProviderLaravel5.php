@@ -53,9 +53,10 @@ class GatewayServiceProviderLaravel5 extends ServiceProvider
 	 */
 	public function register()
 	{
+		$this->mergeConfigFrom(__DIR__ . '/../config/gateway.php', 'gateway');
+
 		$this->app->singleton('gateway', function () {
 			return new GatewayResolver();
 		});
-
 	}
 }

@@ -7,8 +7,10 @@
 پکیج اتصال به تمامی IPG ها و  بانک های ایرانی.
 
 این پکیج با ورژن های
-(  ۴ و ۵ و ۶ و۷ و ۸ و ۹ و ۱۰)
- لاراول سازگار می باشد
+(۴، ۵، ۶، ۷، ۸، ۹، ۱۰، ۱۱، ۱۲ و ۱۳)
+لاراول سازگار می باشد.
+
+حداقل نسخه PHP برای اجرای پکیج، ۸ است. لاراول ۱۱ و ۱۲ به PHP ۸.۲ یا جدیدتر، و لاراول ۱۳ به PHP ۸.۳ یا جدیدتر نیاز دارند.
 
 
 پشتیبانی تنها از درگاهای زیر می باشد:
@@ -68,7 +70,7 @@ composer require mozakar/gateway
 
     تغییرات زیر را در فایل  config/app.php اعمال نمایید:
 
-**توجه برای نسخه های لاراول ۶ به بعد  این مرحله نیاز به انجام نمی باشد** 
+**توجه: از لاراول ۶ به بعد این مرحله لازم نیست. پکیج با package discovery ثبت می‌شود و در لاراول ۱۱ به بعد هم نیازی به ویرایش `config/app.php` یا `bootstrap/providers.php` نیست.** 
 
 </div>
 
@@ -103,18 +105,33 @@ php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProviderLara
 ```
 
 <div dir="rtl">
-برای لاراول ۶ به بعد :
+برای لاراول ۶ به بعد، پرووایدر همان نسخه را منتشر کنید:
 </div>
 
 ```php
 
-php artisan vendor:publish 
+php artisan vendor:publish --provider="Mozakar\Gateway\GatewayServiceProviderLaravel6"
+php artisan vendor:publish --provider="Mozakar\Gateway\GatewayServiceProviderLaravel7"
+php artisan vendor:publish --provider="Mozakar\Gateway\GatewayServiceProviderLaravel8"
+php artisan vendor:publish --provider="Mozakar\Gateway\GatewayServiceProviderLaravel9"
+php artisan vendor:publish --provider="Mozakar\Gateway\GatewayServiceProviderLaravel10"
+php artisan vendor:publish --provider="Mozakar\Gateway\GatewayServiceProviderLaravel11"
+php artisan vendor:publish --provider="Mozakar\Gateway\GatewayServiceProviderLaravel12"
+php artisan vendor:publish --provider="Mozakar\Gateway\GatewayServiceProviderLaravel13"
 
-// then choose : GatewayServiceProviderLaravel6
-// then choose : GatewayServiceProviderLaravel7
-// then choose : GatewayServiceProviderLaravel8
-// then choose : GatewayServiceProviderLaravel9
-// then choose : GatewayServiceProviderLaravel10
+```
+
+<div dir="rtl">
+
+تنظیمات پیش‌فرض از لاراول ۵ به بعد خودکار بارگذاری می‌شوند. برای سفارشی‌سازی، فایل تنظیمات، مایگریشن یا ویو را جداگانه منتشر کنید:
+
+</div>
+
+```php
+
+php artisan vendor:publish --tag=config
+php artisan vendor:publish --tag=migrations
+php artisan vendor:publish --tag=views
 
 ```
 

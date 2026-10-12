@@ -1,6 +1,7 @@
 <?php
 
 use Mozakar\Gateway\Enum;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
@@ -14,7 +15,7 @@ class UpdatePortToGatewayTransactions extends Migration
      */
     public function up()
     {
-        \DB::statement("ALTER TABLE `gateway_transactions` CHANGE `port` `port` VARCHAR(100) NULL DEFAULT NULL;");
+        DB::statement("ALTER TABLE `gateway_transactions` CHANGE `port` `port` VARCHAR(100) NULL DEFAULT NULL;");
     }
 
     /**

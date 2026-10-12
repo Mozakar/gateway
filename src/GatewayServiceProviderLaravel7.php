@@ -28,7 +28,7 @@ class GatewayServiceProviderLaravel7 extends ServiceProvider
         //php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProvider --tag=config
         $this->publishes([
             $config => config_path('gateway.php'),
-        ]);
+        ], 'config');
 		
         // php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProvider --tag=migrations
         $this->publishes([
@@ -53,9 +53,10 @@ class GatewayServiceProviderLaravel7 extends ServiceProvider
 	 */
 	public function register()
 	{
+		$this->mergeConfigFrom(__DIR__ . '/../config/gateway.php', 'gateway');
+
 		$this->app->singleton('gateway', function () {
 			return new GatewayResolver();
 		});
-
 	}
 }

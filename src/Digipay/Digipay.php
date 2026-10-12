@@ -225,7 +225,7 @@ class Digipay extends PortAbstract implements PortInterface
      * @throws Exception
      */
 
-    public function deliver(string $trackingCode, string $invoiceNumber, array $products, DateTime $deliverTime = null): array
+    public function deliver(string $trackingCode, string $invoiceNumber, array $products, ?DateTime $deliverTime = null): array
     {
         if (is_null($deliverTime)) {
             $deliverTime = new DateTime();

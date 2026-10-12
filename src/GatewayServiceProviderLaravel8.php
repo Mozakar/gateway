@@ -2,7 +2,6 @@
 
 namespace Mozakar\Gateway;
 
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\ServiceProvider;
 
 class GatewayServiceProviderLaravel8 extends ServiceProvider
@@ -25,25 +24,28 @@ class GatewayServiceProviderLaravel8 extends ServiceProvider
         $migrations = __DIR__ . '/../migrations/';
         $views = __DIR__ . '/../views/';
 
-        //php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProvider --tag=config
+        // php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProviderLaravel8 --tag=config
         $this->publishes([
             $config => config_path('gateway.php'),
-        ]);
-		
-        // php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProvider --tag=migrations
-        $this->publishes([
-            $migrations => database_path('migrations')
-        ], 'migrations');
+        ], 'config');
 
-		
+        $migrationPaths = [
+            $migrations => database_path('migrations'),
+        ];
+
+        // Laravel 11+ rewrites migration timestamps when publishing.
+        if (method_exists($this, 'publishesMigrations')) {
+            $this->publishesMigrations($migrationPaths, 'migrations');
+        } else {
+            $this->publishes($migrationPaths, 'migrations');
+        }
+
         $this->loadViewsFrom($views, 'gateway');
 
-        // php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProvider --tag=views
+        // php artisan vendor:publish --provider=Mozakar\Gateway\GatewayServiceProviderLaravel8 --tag=views
         $this->publishes([
             $views => resource_path('views/vendor/gateway'),
         ], 'views');
-
-        //$this->mergeConfigFrom( $config,'gateway')
 	}
 
 	/**
@@ -53,9 +55,10 @@ class GatewayServiceProviderLaravel8 extends ServiceProvider
 	 */
 	public function register()
 	{
+		$this->mergeConfigFrom(__DIR__ . '/../config/gateway.php', 'gateway');
+
 		$this->app->singleton('gateway', function () {
 			return new GatewayResolver();
 		});
-
 	}
 }

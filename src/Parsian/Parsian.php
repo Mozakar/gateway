@@ -3,7 +3,6 @@
 namespace Mozakar\Gateway\Parsian;
 
 use Illuminate\Support\Facades\Request;
-use Illuminate\Validation\Rules\In;
 use SoapClient;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
@@ -52,7 +51,7 @@ class Parsian extends PortAbstract implements PortInterface
 	{
 		$url = $this->gateUrl . $this->refId();
 
-		return \View::make('gateway::parsian-redirector')->with(compact('url'));
+		return view('gateway::parsian-redirector', compact('url'));
 	}
 
 	/**

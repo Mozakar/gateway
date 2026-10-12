@@ -87,7 +87,7 @@ class Zarinpal extends PortAbstract implements PortInterface
 	 */
 	public function redirect()
 	{
-		return \Redirect::to($this->serverUrl . self::PAY_PATH . $this->refId);
+		return redirect()->to($this->serverUrl . self::PAY_PATH . $this->refId);
 	}
 
 	/**

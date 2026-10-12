@@ -108,7 +108,7 @@ class Nikan extends PortAbstract implements PortInterface
 
         $data = array_merge($main_data, $this->optional_data);
 
-        return \View::make('gateway::nikan-redirector')->with($data)->with('gateUrl',$this->serverPaymentUrl);
+        return view('gateway::nikan-redirector', array_merge($data, ['gateUrl' => $this->serverPaymentUrl]));
     }
 
     /**

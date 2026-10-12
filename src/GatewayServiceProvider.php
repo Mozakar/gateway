@@ -2,7 +2,7 @@
 
 namespace Mozakar\Gateway;
 
-use Illuminate\Support\Facades\File;
+use Illuminate\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
 class GatewayServiceProvider extends ServiceProvider
@@ -53,28 +53,27 @@ class GatewayServiceProvider extends ServiceProvider
      */
     private function getProvider()
     {
-        if (version_compare(\Illuminate\Foundation\Application::VERSION, '5.0', '<')) {
-            $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel4';
-        }elseif (version_compare(\Illuminate\Foundation\Application::VERSION, '5.0', '>=') && version_compare(\Illuminate\Foundation\Application::VERSION, '6.0', '<')) {
-            $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel5';
-        }
-        elseif (version_compare(\Illuminate\Foundation\Application::VERSION, '6.0', '>=') && version_compare(\Illuminate\Foundation\Application::VERSION, '7.0', '<')) {
-            $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel6';
-        }
-        elseif (version_compare(\Illuminate\Foundation\Application::VERSION, '7.0', '>=') && version_compare(\Illuminate\Foundation\Application::VERSION, '8.0', '<')) {
-            $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel7';
-        }
-        elseif (version_compare(\Illuminate\Foundation\Application::VERSION, '8.0', '>=') && version_compare(\Illuminate\Foundation\Application::VERSION, '9.0', '<')) {
-            $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel8';
-        }
-        elseif (version_compare(\Illuminate\Foundation\Application::VERSION, '9.0', '>=') && version_compare(\Illuminate\Foundation\Application::VERSION, '9.0', '<')) {
-            $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel9';
-        }
-        else {
-            $provider = 'Mozakar\Gateway\GatewayServiceProviderLaravel10';
+        $version = Application::VERSION;
+
+        $providers = [
+            '13.0' => GatewayServiceProviderLaravel13::class,
+            '12.0' => GatewayServiceProviderLaravel12::class,
+            '11.0' => GatewayServiceProviderLaravel11::class,
+            '10.0' => GatewayServiceProviderLaravel10::class,
+            '9.0' => GatewayServiceProviderLaravel9::class,
+            '8.0' => GatewayServiceProviderLaravel8::class,
+            '7.0' => GatewayServiceProviderLaravel7::class,
+            '6.0' => GatewayServiceProviderLaravel6::class,
+            '5.0' => GatewayServiceProviderLaravel5::class,
+        ];
+
+        foreach ($providers as $minimum => $provider) {
+            if (version_compare($version, $minimum, '>=')) {
+                return new $provider($this->app);
+            }
         }
 
-        return new $provider($this->app);
+        return new GatewayServiceProviderLaravel4($this->app);
     }
 
 	/**

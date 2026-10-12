@@ -2,7 +2,7 @@
   "name": "mozakar/gateway",
   "homepage": "https://github.com/mozakar/gateway",
   "description": "A Laravel package for connecting to all Iraninan payment  gateways, base package mozakar/gateway",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "keywords": [
     "laravel",
     "iran",
@@ -46,7 +46,9 @@
     }
   ],
   "require": {
-    "nesbot/carbon": "*"
+    "php": "^8.0",
+    "illuminate/support": "^5.8 || ^6.0 || ^7.0 || ^8.0 || ^9.0 || ^10.0 || ^11.0 || ^12.0 || ^13.0",
+    "nesbot/carbon": "^2.0 || ^3.0"
   },
   "autoload": {
     "psr-4": {
@@ -55,6 +57,7 @@
     }
   },
   "minimum-stability": "dev",
+  "prefer-stable": true,
   "extra": {
     "laravel": {
       "providers": [

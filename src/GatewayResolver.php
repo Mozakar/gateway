@@ -17,7 +17,7 @@ use Mozakar\Gateway\Irankish\Irankish;
 use Mozakar\Gateway\Pasargad\Pasargad;
 use Mozakar\Gateway\SamanOld\SamanOld;
 use Mozakar\Gateway\Zarinpal\Zarinpal;
-use Mozakar\Gateway\SadadBnpl\SadadBnpl;
+use Mozakar\Gateway\Sadadbnpl\Sadadbnpl;
 use Mozakar\Gateway\Asanpardakht\Asanpardakht;
 use Mozakar\Gateway\Exceptions\RetryException;
 use Mozakar\Gateway\Exceptions\PortNotFoundException;
@@ -152,7 +152,7 @@ class GatewayResolver
 			Irankish::class      => Enum::IRANKISH,
 			Apsan::class         => Enum::APSAN,
 			Vandar::class        => Enum::VANDAR,
-			SadadBnpl::class     => Enum::SADAD_BNPL,
+			Sadadbnpl::class     => Enum::SADAD_BNPL,
 			Digipay::class       => Enum::DIGIPAY,
 			Zibal::class         => Enum::ZIBAL,
 			// Setareaval::class    => Enum::SETAREAVAL,

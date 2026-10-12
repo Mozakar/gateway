@@ -45,7 +45,7 @@ class Mellat extends PortAbstract implements PortInterface
 	{
 		$refId = $this->refId;
 
-        return \View::make('gateway::mellat-redirector')->with(compact('refId'));
+        return view('gateway::mellat-redirector', compact('refId'));
 	}
 
 	/**

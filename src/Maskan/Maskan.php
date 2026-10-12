@@ -2,7 +2,6 @@
 
 namespace Mozakar\Gateway\Maskan;
 
-use Illuminate\Support\Facades\Input;
 use Mozakar\Gateway\Enum;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
@@ -200,7 +199,7 @@ class Maskan extends PortAbstract implements PortInterface
                 curl_setopt($curl, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
                 $result = curl_exec($curl);
                 curl_close($curl);
-                $result     = iconv('UTF-8', 'UTF-8//IGNORE', utf8_encode($result));
+                $result     = iconv('UTF-8', 'UTF-8//IGNORE', mb_convert_encoding($result, 'UTF-8', 'ISO-8859-1'));
                 $confirm    = json_decode($result, false);
                 $ActionCode = strval($confirm->ActionCode);
                 if (json_last_error() != 0 || $confirm == null || $ActionCode == null) {

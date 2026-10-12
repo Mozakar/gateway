@@ -75,7 +75,7 @@ class SamanOld extends PortAbstract implements PortInterface
 
         $data = array_merge($main_data, $this->optional_data);
 
-        return \View::make('gateway::saman-redirector')->with($data)->with('gateUrl',$this->gateUrl);
+        return view('gateway::saman-redirector', array_merge($data, ['gateUrl' => $this->gateUrl]));
     }
 
     /**

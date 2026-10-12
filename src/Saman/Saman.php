@@ -115,7 +115,7 @@ class Saman extends PortAbstract implements PortInterface
 
         $data = array_merge($main_data, $this->optional_data);
 
-        return \View::make('gateway::saman-token-redirector')->with($data)->with('gateUrl',$this->gateUrl);
+        return view('gateway::saman-token-redirector', array_merge($data, ['gateUrl' => $this->gateUrl]));
     }
 
     /**
