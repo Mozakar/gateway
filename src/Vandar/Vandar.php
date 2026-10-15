@@ -2,6 +2,8 @@
 
 namespace Mozakar\Gateway\Vandar;
 
+use Mozakar\Gateway\Currency;
+use Mozakar\Gateway\Http\HttpResponse;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
 use Illuminate\Support\Facades\Cache;
@@ -9,6 +11,13 @@ use Illuminate\Support\Facades\Request;
 
 class Vandar extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.vandar.callback-url';
+
+    /**
+     * Vandar expects the amount in Toman.
+     */
+    protected string $gatewayCurrency = Currency::TOMAN;
+
     /**
      *
      * @var Array $optional_data An array of optional data
@@ -31,16 +40,6 @@ class Vandar extends PortAbstract implements PortInterface
     protected $serverIBanRequestUrl = 'https://api.vandar.io/v3/business/';
     protected $serverLoginUrl = 'https://api.vandar.io/v3/login';
     protected $token;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -141,31 +140,6 @@ class Vandar extends PortAbstract implements PortInterface
 
         return $this;
     }
-
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.vandar.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-
-        return $url;
-    }
-
 
     /**
      * Verify user payment from bank server
@@ -299,75 +273,48 @@ class Vandar extends PortAbstract implements PortInterface
 
     public function curl_get($url, $authorization = '')
     {
-        $headers = ['Content-Type: application/json'];
-        if($authorization != ''){
-            $headers[] = 'Authorization: Bearer ' . $authorization;
-        }
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, 0);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
-
-        $result = json_decode($res);
-
-        if(isset($result->error) && isset($result->errors))
-            throw new VandarException($result->error . ', ' . $this->formatErrors($result->errors));
-
-        if(isset($result->error))
-            throw new VandarException($result->error);
-
-        if(isset($result->errors))
-            throw new VandarException($this->formatErrors($result->errors));
-
-
-        throw new VandarException($res);
+        return $this->vandarResponse($this->http()->get($url, $this->vandarHeaders($authorization)));
     }
 
     public function curl_post($url, $params, $authorization = '')
     {
+        return $this->vandarResponse($this->http()->postJson($url, $params, $this->vandarHeaders($authorization)));
+    }
+
+    /**
+     * @return string[]
+     */
+    private function vandarHeaders($authorization): array
+    {
         $headers = ['Content-Type: application/json'];
-        if($authorization != ''){
+        if ($authorization != '') {
             $headers[] = 'Authorization: Bearer ' . $authorization;
         }
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
+        return $headers;
+    }
 
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
+    private function vandarResponse(HttpResponse $response): string
+    {
+        if ($response->successful()) {
+            return $response->body();
+        }
 
-        $result = json_decode($res);
+        $result = $response->json();
 
-        if(isset($result->error) && isset($result->errors))
+        if (isset($result->error) && isset($result->errors)) {
             throw new VandarException($result->error . ', ' . $this->formatErrors($result->errors));
+        }
 
-        if(isset($result->error))
+        if (isset($result->error)) {
             throw new VandarException($result->error);
+        }
 
-        if(isset($result->errors))
+        if (isset($result->errors)) {
             throw new VandarException($this->formatErrors($result->errors));
+        }
 
-
-        throw new VandarException($res);
+        throw new VandarException($response->body());
     }
 
     private function formatErrors($errors){

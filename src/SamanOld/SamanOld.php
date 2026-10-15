@@ -10,6 +10,8 @@ use Mozakar\Gateway\PortInterface;
 
 class SamanOld extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.saman.callback-url';
+
     /**
      *
      * @var Array $optional_data An array of optional data
@@ -27,16 +29,6 @@ class SamanOld extends PortAbstract implements PortInterface
     protected $serverVerifyUrl = "https://sep.shaparak.ir/payments/referencepayment.asmx?WSDL";
 
     protected $gateUrl = "https://sep.shaparak.ir/Payment.aspx";
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -90,31 +82,6 @@ class SamanOld extends PortAbstract implements PortInterface
 
         return $this;
     }
-
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.saman.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-
-        return $url;
-    }
-
 
     /**
      * Check user payment

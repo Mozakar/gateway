@@ -28,15 +28,6 @@ class Maskan extends PortAbstract implements PortInterface
     /**
      * {@inheritdoc}
      */
-    public function set($amount)
-    {
-        $this->amount = $amount  ;
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function ready()
     {
         $this->sendPayRequest();
@@ -66,27 +57,6 @@ class Maskan extends PortAbstract implements PortInterface
     }
 
     /**
-     * Sets callback url
-     *
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-    }
-
-    /**
      * Send pay request to server
      *
      * @return void
@@ -112,15 +82,12 @@ class Maskan extends PortAbstract implements PortInterface
             "CARDACCEPTORCODE" => $terminalId,
         ];
 
-        $curl = curl_init();
-
-        curl_setopt($curl, CURLOPT_POST, 1);
-        curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($parameters));
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_URL, $this->serverUrl);
-        curl_setopt($curl, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
-        $result = curl_exec($curl);
-        curl_close($curl);
+        $result = $this->http()->postJson($this->serverUrl, $parameters, [
+            'Content-Type: application/json',
+        ], [
+            'verify_host' => null,
+            'verify_peer' => true,
+        ])->body();
 
         if ($result == null || $result == "" || !isset($result)) {
             $is_error   = 'yes';
@@ -191,14 +158,12 @@ class Maskan extends PortAbstract implements PortInterface
                     "USERPASSWORD"     => $userPassword,
                 ];
 
-                $curl = curl_init();
-                curl_setopt($curl, CURLOPT_POST, 1);
-                curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($parameters));
-                curl_setopt($curl, CURLOPT_URL, "https://fcp.shaparak.ir/NvcService/Api/v2/Confirm");
-                curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-                curl_setopt($curl, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
-                $result = curl_exec($curl);
-                curl_close($curl);
+                $result = $this->http()->postJson('https://fcp.shaparak.ir/NvcService/Api/v2/Confirm', $parameters, [
+                    'Content-Type: application/json',
+                ], [
+                    'verify_host' => null,
+                    'verify_peer' => true,
+                ])->body();
                 $result     = iconv('UTF-8', 'UTF-8//IGNORE', mb_convert_encoding($result, 'UTF-8', 'ISO-8859-1'));
                 $confirm    = json_decode($result, false);
                 $ActionCode = strval($confirm->ActionCode);

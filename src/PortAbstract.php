@@ -4,6 +4,7 @@ namespace Mozakar\Gateway;
 use Carbon\Carbon;
 use Mozakar\Gateway\Enum;
 use Mozakar\Gateway\Currency;
+use Mozakar\Gateway\Http\HttpClient;
 use Illuminate\Support\Facades\Request;
 
 #[\AllowDynamicProperties]
@@ -60,11 +61,20 @@ abstract class PortAbstract
 	protected $refId;
 
 	/**
-	 * Amount in Rial
+	 * Amount in the selected currency. The default currency is Rial.
 	 *
-	 * @var int
+	 * After ready(), this is the amount sent to the bank.
+	 *
+	 * @var int|null
 	 */
 	protected $amount;
+
+	/**
+	 * Amount passed by the caller, before conversion to the bank currency.
+	 *
+	 * @var int|null
+	 */
+	protected $inputAmount = null;
 
 	/**
 	 * Description of transaction
@@ -124,11 +134,19 @@ abstract class PortAbstract
 	protected string $redirectUrl;
 
 	/**
-	 * Currency
-	 *
-	 * @var string
+	 * Currency of the amount passed to price() / set().
 	 */
 	protected string $currency = Currency::RIAL;
+
+	/**
+	 * Currency expected by the bank API.
+	 */
+	protected string $gatewayCurrency = Currency::RIAL;
+
+	/**
+	 * Whether $amount is already expressed in the bank currency.
+	 */
+	protected bool $amountNormalized = false;
 
 	/**
 	 * useCache
@@ -136,6 +154,18 @@ abstract class PortAbstract
 	 * @var bool
 	 */
 	protected bool $useCache = false;
+
+	/**
+	 * Config key of the default callback URL, such as gateway.mellat.callback-url.
+	 */
+	protected ?string $callbackConfig = null;
+
+	/**
+	 * Some gateways expect the callback itself to be URL-encoded.
+	 */
+	protected bool $encodeCallback = false;
+
+	private ?HttpClient $httpClient = null;
 	/**
 	 * Initialize of class
 	 *
@@ -347,9 +377,25 @@ abstract class PortAbstract
 	}
 
 	/**
-	 * Sets price
-	 * @param $price
-	 * @return mixed
+	 * Sets the payable amount in the selected currency. Default currency is Rial.
+	 *
+	 * @param int|float|string $amount
+	 * @return $this
+	 */
+	public function set($amount)
+	{
+		$this->inputAmount = (int) $amount;
+		$this->amount = $this->inputAmount;
+		$this->amountNormalized = false;
+
+		return $this;
+	}
+
+	/**
+	 * Sets price in the selected currency. Default currency is Rial.
+	 *
+	 * @param int|float|string $price
+	 * @return $this
 	 */
 	function price($price)
 	{
@@ -457,6 +503,8 @@ abstract class PortAbstract
 	 */
 	protected function newTransaction()
 	{
+		$this->normalizeAmount();
+
 		$uid = $this->getTimeId();
 
 		$this->transactionId = $this->getTable()->insert([
@@ -549,7 +597,7 @@ abstract class PortAbstract
 	{
 		if(!empty($statusMessage) && strlen($statusMessage) > 200){
 			$statusMessage = strip_tags($statusMessage); 
-			$statusMessage = substr($statusMessage, 0, 200); offset: 
+			$statusMessage = substr($statusMessage, 0, 200);
 		}
 		return $this->getLogTable()->insert([
 			'transaction_id' => $this->transactionId,
@@ -611,18 +659,149 @@ abstract class PortAbstract
 		return "Mozakar_Gateway_" . $key;
 	}
 
-	protected function getCurrency(): string
+	protected function http(): HttpClient
+	{
+		return $this->httpClient ??= new HttpClient();
+	}
+
+	/**
+	 * @param string $url
+	 * @return $this
+	 */
+	public function setCallback($url)
+	{
+		$this->callbackUrl = $url;
+
+		return $this;
+	}
+
+	/**
+	 * Callback URL sent to the bank. Uses the configured default until setCallback() is called.
+	 */
+	public function getCallback()
+	{
+		if (!$this->callbackUrl && $this->callbackConfig) {
+			$this->callbackUrl = $this->config->get($this->callbackConfig);
+		}
+
+		$url = $this->makeCallback($this->callbackUrl, array_merge(
+			['transaction_id' => $this->transactionId()],
+			$this->callbackQuery()
+		));
+
+		return $this->encodeCallback ? urlencode($url) : $url;
+	}
+
+	/**
+	 * Extra query parameters appended to the callback URL.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function callbackQuery(): array
+	{
+		return [];
+	}
+
+	protected function authorizationHeader(?string $token): string
+	{
+		$token = str_replace('Bearer ', '', (string) $token);
+
+		return 'Authorization: Bearer ' . $token;
+	}
+
+	/**
+	 * Read a cached access token, or store the token returned by $fetch.
+	 * $fetch must return [token, ttl in seconds].
+	 *
+	 * @param callable(): array{0: string, 1: int} $fetch
+	 */
+	protected function rememberToken(string $cacheKey, bool $forget, callable $fetch): string
+	{
+		$cache = null;
+		if ($this->useCache) {
+			$cache = $this->cacheService();
+			if ($cache::has($cacheKey)) {
+				if (!$forget) {
+					return (string) $cache::get($cacheKey);
+				}
+				$cache::forget($cacheKey);
+			}
+		}
+
+		[$token, $ttl] = $fetch();
+
+		if ($this->useCache) {
+			$cache = $cache ?: $this->cacheService();
+			$cache::put($cacheKey, $token, $ttl);
+		}
+
+		return $token;
+	}
+
+	/**
+	 * Currency of the amount passed by the caller.
+	 */
+	public function getCurrency(): string
 	{
 		return $this->currency;
 	}
 
-	protected function setCurrency(string $currency): static
+	/**
+	 * Set the currency of the amount passed to price() / set().
+	 * Call this before ready(). The default is Rial.
+	 *
+	 * @param string $currency RIAL or TOMAN. Miligold also accepts MILI.
+	 * @return $this
+	 */
+	public function setCurrency(string $currency): static
 	{
-		$currency = strtoupper($currency);
-		if (!in_array($currency, Currency::ALL)) {
-			throw new \Exception("Currency is not valid, allowed currencies are: " . implode(", ", Currency::ALL));
+		$currency = strtoupper(trim($currency));
+		if (!in_array($currency, $this->supportedCurrencies(), true)) {
+			throw new \Exception('Currency is not valid, allowed currencies are: ' . implode(', ', $this->supportedCurrencies()));
 		}
+
 		$this->currency = $currency;
+		$this->amountNormalized = false;
+
 		return $this;
+	}
+
+	/**
+	 * Currencies this gateway accepts from the caller.
+	 *
+	 * @return string[]
+	 */
+	protected function supportedCurrencies(): array
+	{
+		return [Currency::RIAL, Currency::TOMAN];
+	}
+
+	/**
+	 * Convert a caller amount into the unit the bank API expects.
+	 */
+	protected function convertAmount(int $amount, string $from, string $to): int
+	{
+		if ($from === $to || $from === Currency::MILI || $to === Currency::MILI) {
+			return $amount;
+		}
+
+		$rial = $from === Currency::TOMAN ? $amount * 10 : $amount;
+
+		return $to === Currency::TOMAN ? intdiv($rial, 10) : $rial;
+	}
+
+	/**
+	 * Store and send the amount in the bank currency.
+	 * Uses the original caller amount, so ready() does not convert twice.
+	 */
+	protected function normalizeAmount(): void
+	{
+		if ($this->amountNormalized) {
+			return;
+		}
+
+		$source = $this->inputAmount ?? (int) $this->amount;
+		$this->amount = $this->convertAmount((int) $source, $this->currency, $this->gatewayCurrency);
+		$this->amountNormalized = true;
 	}
 }

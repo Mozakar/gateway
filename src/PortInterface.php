@@ -6,13 +6,26 @@ interface PortInterface
 {
 
     /**
-     * This method use for set price in Rial.
+     * Set the payable amount in the selected currency. Default currency is Rial.
      *
-     * @param int $amount in Rial
+     * @param int|float|string $amount
      *
      * @return $this
      */
     public function set($amount);
+
+    /**
+     * Set the currency of the amount passed to set() / price().
+     * Default is Rial. Call this before ready().
+     *
+     * @return $this
+     */
+    public function setCurrency(string $currency);
+
+    /**
+     * Currency of the amount passed by the caller.
+     */
+    public function getCurrency(): string;
 
     /**
      * This method use for done everything that necessary before redirect to port.

@@ -3,6 +3,7 @@
 namespace Mozakar\Gateway\JahanPay;
 
 use Illuminate\Support\Facades\Request;
+use Mozakar\Gateway\Currency;
 use Mozakar\Gateway\Enum;
 use SoapClient;
 use Mozakar\Gateway\PortAbstract;
@@ -10,6 +11,13 @@ use Mozakar\Gateway\PortInterface;
 
 class JahanPay extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.jahanpay.callback-url';
+
+    /**
+     * JahanPay expects the amount in Toman.
+     */
+    protected string $gatewayCurrency = Currency::TOMAN;
+
     /**
      * Address of main SOAP server
      *
@@ -23,16 +31,6 @@ class JahanPay extends PortAbstract implements PortInterface
      * @var string
      */
     protected $gateUrl = 'http://www.jahanpay.com/pay_invoice/';
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = ($amount / 10);
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -63,28 +61,6 @@ class JahanPay extends PortAbstract implements PortInterface
         $this->verifyPayment();
 
         return $this;
-    }
-
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.jahanpay.callback-url');
-
-        return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
     }
 
     /**

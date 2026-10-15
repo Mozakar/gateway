@@ -3,11 +3,19 @@
 namespace Mozakar\Gateway\Payping;
 
 use Exception;
+use Mozakar\Gateway\Currency;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
 
 class Payping extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.payping.callback-url';
+
+    /**
+     * PayPing expects the amount in Toman.
+     */
+    protected string $gatewayCurrency = Currency::TOMAN;
+
     /**
      *
      * @var Array $optional_data An array of optional data
@@ -25,16 +33,6 @@ class Payping extends PortAbstract implements PortInterface
     protected $serverPaymentUrl = 'https://api.payping.ir/v1/pay/gotoipg/';
     protected $serverVerifyUrl = 'https://api.payping.ir/v1/pay/verify';
 	protected $token;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -110,29 +108,6 @@ class Payping extends PortAbstract implements PortInterface
         return $this;
     }
 
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.payping.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-
-        return $url;
-    }
 
 
 
@@ -166,41 +141,31 @@ class Payping extends PortAbstract implements PortInterface
 
     function curl_post($url, $params)
     {
-        $authorization = $this->config->get('gateway.payping.token');
-        $authorization = str_replace("Bearer ", "", $authorization);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $authorization,
+        $response = $this->http()->postJson($url, $params, [
+            $this->authorizationHeader($this->config->get('gateway.payping.token')),
             'Content-Type: application/json',
         ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
 
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
+        if ($response->successful()) {
+            return $response->body();
+        }
 
         $this->transactionFailed();
-        $response = json_decode($res);
-        $error = "error";
-        if(isset($response->Error)) {
-            $error = $response->Error;
-        }else{
-            $response = (array)$response;
-            if(is_array($response) && count($response)){
-                $firstKey = array_key_first($response);
-                $this->newLog($firstKey, $response[$firstKey]);
-                throw new PaypingException($firstKey, $response[$firstKey]);
+        $decoded = $response->json();
+        $error = 'error';
+        if (isset($decoded->Error)) {
+            $error = $decoded->Error;
+        } else {
+            $decoded = (array) $decoded;
+            if (is_array($decoded) && count($decoded)) {
+                $firstKey = array_key_first($decoded);
+                $this->newLog($firstKey, $decoded[$firstKey]);
+                throw new PaypingException($firstKey, $decoded[$firstKey]);
             }
         }
 
-        $this->newLog($info["http_code"], $error);
-        throw new PaypingException($info["http_code"], $error);
+        $this->newLog($response->status(), $error);
+        throw new PaypingException($response->status(), $error);
     }
 
 

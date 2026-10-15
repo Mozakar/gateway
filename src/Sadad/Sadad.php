@@ -9,6 +9,8 @@ use Mozakar\Gateway\PortInterface;
 
 class Sadad extends PortAbstract implements PortInterface
 {
+	protected ?string $callbackConfig = 'gateway.sadad.callback-url';
+
 	private const REQUEST_URL = 'https://sadad.shaparak.ir/vpg/api/v0/Request/PaymentRequest';
 
 	private const VERIFY_URL = 'https://sadad.shaparak.ir/vpg/api/v0/Advice/Verify';
@@ -17,16 +19,6 @@ class Sadad extends PortAbstract implements PortInterface
 
 	private ?string $appName = '';
 
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function set($amount)
-	{
-		$this->amount = intval($amount);
-
-		return $this;
-	}
 
 	/**
 	 * {@inheritdoc}
@@ -57,28 +49,6 @@ class Sadad extends PortAbstract implements PortInterface
 		$this->verifyPayment();
 
 		return $this;
-	}
-
-	/**
-	 * Sets callback url
-	 * @param $url
-	 */
-	function setCallback($url)
-	{
-		$this->callbackUrl = $url;
-		return $this;
-	}
-
-	/**
-	 * Gets callback url
-	 * @return string
-	 */
-	function getCallback()
-	{
-		if (!$this->callbackUrl)
-			$this->callbackUrl = $this->config->get('gateway.sadad.callback-url');
-
-		return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
 	}
 
 	  /**
@@ -221,30 +191,20 @@ class Sadad extends PortAbstract implements PortInterface
      */
     function curl_post(string $url, array $params = []): string
     {
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $response = $this->http()->postJson($url, $params, [
             'Content-Type: application/json; charset=UTF-8',
         ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-        
 
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
+        if ($response->successful()) {
+            return $response->body();
+        }
 
         $this->transactionFailed();
-        $response = json_decode($res);
-        if (isset($response->ResCode)) {
-            throw new SadadException($response->ResCode);
+        $decoded = $response->json();
+        if (isset($decoded->ResCode)) {
+            throw new SadadException($decoded->ResCode);
         }
-        $this->newLog($info["http_code"], $res);
+        $this->newLog($response->status(), $response->body());
         throw new SadadException(-1);
     }
 

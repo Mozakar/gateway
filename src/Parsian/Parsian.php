@@ -9,6 +9,8 @@ use Mozakar\Gateway\PortInterface;
 
 class Parsian extends PortAbstract implements PortInterface
 {
+	protected ?string $callbackConfig = 'gateway.parsian.callback-url';
+
 	/**
 	 * Url of parsian gateway web service
 	 *
@@ -24,15 +26,6 @@ class Parsian extends PortAbstract implements PortInterface
 	 * @var string
 	 */
 	protected $gateUrl = 'https://pec.shaparak.ir/NewIPG/?Token=';
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function set($amount)
-	{
-		$this->amount = intval($amount);
-		return $this;
-	}
 
 	/**
 	 * {@inheritdoc}
@@ -64,28 +57,6 @@ class Parsian extends PortAbstract implements PortInterface
 		$this->verifyPayment();
 
 		return $this;
-	}
-
-	/**
-	 * Sets callback url
-	 * @param $url
-	 */
-	function setCallback($url)
-	{
-		$this->callbackUrl = $url;
-		return $this;
-	}
-
-	/**
-	 * Gets callback url
-	 * @return string
-	 */
-	function getCallback()
-	{
-		if (!$this->callbackUrl)
-			$this->callbackUrl = $this->config->get('gateway.parsian.callback-url');
-
-		return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
 	}
 
 	/**

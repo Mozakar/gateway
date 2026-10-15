@@ -11,22 +11,14 @@ use Mozakar\Gateway\PortInterface;
 
 class Mellat extends PortAbstract implements PortInterface
 {
+	protected ?string $callbackConfig = 'gateway.mellat.callback-url';
+
 	/**
 	 * Address of main SOAP server
 	 *
 	 * @var string
 	 */
 	protected $serverUrl = 'https://bpm.shaparak.ir/pgwchannel/services/pgw?wsdl';
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function set($amount)
-	{
-		$this->amount = $amount;
-
-		return $this;
-	}
 
 	/**
 	 * {@inheritdoc}
@@ -60,28 +52,6 @@ class Mellat extends PortAbstract implements PortInterface
 		$this->settleRequest();
 
 		return $this;
-	}
-
-	/**
-	 * Sets callback url
-	 * @param $url
-	 */
-	function setCallback($url)
-	{
-		$this->callbackUrl = $url;
-		return $this;
-	}
-
-	/**
-	 * Gets callback url
-	 * @return string
-	 */
-	function getCallback()
-	{
-		if (!$this->callbackUrl)
-			$this->callbackUrl = $this->config->get('gateway.mellat.callback-url');
-
-		return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
 	}
 
 	/**

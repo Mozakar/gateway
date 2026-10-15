@@ -12,6 +12,8 @@
 
 حداقل نسخه PHP برای اجرای پکیج، ۸ است. لاراول ۱۱ و ۱۲ به PHP ۸.۲ یا جدیدتر، و لاراول ۱۳ به PHP ۸.۳ یا جدیدتر نیاز دارند.
 
+نسخه فعلی پکیج ۳ است.
+
 
 پشتیبانی تنها از درگاهای زیر می باشد:
  1. MELLAT
@@ -32,6 +34,8 @@
  15. SADAD BNPL (MELLI BNPL)
  16. Zibal (جدید)
  17. MiliGold
+
+Payline، جهان‌پی و ستاره‌اول در این نسخه فعال نیستند.
 ----------
 
 
@@ -154,19 +158,24 @@ php artisan migrate
 
 عملیات نصب پایان یافته است حال فایل gateway.php را در مسیر app/  باز نموده و  تنظیمات مربوط به درگاه بانکی مورد نظر خود را در آن وارد نمایید .
 
-حال میتوایند برای اتصال به api  بانک  از یکی از روش های زیر به انتخاب خودتان استفاده نمایید . (Facade , Service container):
+از نسخه ۳ نام درگاه را مستقیم به `make` بدهید. نیازی به `switch` روی نام بانک نیست.
+
+مبلغ پیش‌فرض همه درگاه‌ها ریال است. اگر مبلغ را به تومان دارید، یک بار `setCurrency` را صدا بزنید. پکیج خودش مبلغ را به واحدی که API همان بانک می‌خواهد تبدیل می‌کند.
+
 </div>
+
+- بیشتر بانک‌ها (ملت، سامان، سداد، پارسیان، پاسارگاد، زرین‌پال، زیبال، دیجی‌پی، آسان‌پرداخت، ایران‌کیش، نیکان، آپسان، سداد BNPL و pay.ir) ریال می‌خواهند.
+- پی‌پینگ و وندار تومان می‌خواهند.
+- میلی‌گلد مبلغ ریال یا تومان را با قیمت لحظه‌ای به میلی تبدیل می‌کند. برای میلی‌گلد مقدار `MILI` هم مجاز است.
  
- 1. Gateway::make(new Mellat())
+ 1. Gateway::make($bank)
  2. Gateway::make('mellat')
  3. Gateway::mellat()
- 4. app('gateway')->make(new Mellat());
- 5. app('gateway')->mellat();
+ 4. app('gateway')->make($bank);
  
 <div dir="rtl">
 
- مثال :‌اتصال به بانک ملت (درخواست توکن و انتقال کاربر به درگاه بانک)
-توجه :‌ مقدار متد price   به ریال وارد شده است و معادل یکصد تومان می باشد
+ مثال :‌اتصال به درگاه (درخواست توکن و انتقال کاربر به بانک)
 
 یک روت از نوع GET با آدرس /bank/request ایجاد نمایید و کد های زیر را در آن قرار دهید .
 
@@ -177,32 +186,28 @@ php artisan migrate
 
 try {
 
-   $gateway = \Gateway::make('mellat');
+   $bank = 'mellat'; // zarinpal, saman, payping, digipay, ...
+   $gateway = \Gateway::make($bank);
 
-   $gateway->setCallback(url('/bank/response')); // You can also change the callback
-   $gateway->price(1000)
-           // setFactorNumber("13131313") // optional - just for vandar
-           ->ready();
+   // پیش‌فرض ریال است. اگر مبلغ فروشگاه تومان است:
+   $gateway->setCurrency(\Mozakar\Gateway\Currency::TOMAN);
+
+   $gateway->setCallback(url('/bank/response'));
+   $gateway->setMobile('09xxxxxxxxx');
+   $gateway->setOrderId(1);
+   $gateway->price(1000)->ready(); // ۱۰۰۰ تومان؛ برای بانک ریالی ۱۰۰۰۰ ریال ارسال می‌شود
 
    $refId =  $gateway->refId(); // شماره ارجاع بانک
    $transID = $gateway->transactionId(); // شماره تراکنش
 
-  
-   // در اینجا
-   //  شماره تراکنش  بانک را با توجه به نوع ساختار دیتابیس تان 
-   //  در جداول مورد نیاز و بسته به نیاز سیستم تان
-   // ذخیره کنید .
+   //برای دیجی پی نوع تیکت، شماره همراه و شماره سفارش الزامی است.
+   // $gateway->useCache();
+   // $gateway->setTicketType(11);
+   // $gateway->setBasketItems($basket);
+   // مبلغ سطرهای سبد را خودتان به ریال بدهید؛ فقط مبلغ کل تبدیل می‌شود.
 
-    // برای میلی گلذ (miligold)
-    // $gateway->setCurrency("RIAL"); //RIAL, TOMAN, MILI
-    // به صورت پیش فرض کارنسی ریال است
-    // اگر کارنسی به تومان یا ریال باشد مقدار پرداخت به میلی تبدیل میشود
+   // setFactorNumber("13131313") اختیاری و فقط برای وندار است.
 
-    //برای دیجی پی
-    //نوع تیکت شماره همراه کاربر و شماره سفارش الزامی است.
-    // $gateway->setTicketType(11);
-    // $gateway->setMobile("09350000000");
-    // $gateway->setOrderId(1);
    return $gateway->redirect();
 
 } catch (\Exception $e) {

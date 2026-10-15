@@ -9,6 +9,8 @@ use Mozakar\Gateway\Pasargad\PasargadException;
 
 class Pasargad extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.pasargad.callback-url';
+
 
     private string $baseUrl = 'https://pep.shaparak.ir/dorsa1/';
     private const AUTH_PATH = 'token/getToken';
@@ -30,16 +32,6 @@ class Pasargad extends PortAbstract implements PortInterface
     private string $pans = '';
     private string $nationalCode = '';
     private string $invoiceDate = '';
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -195,30 +187,6 @@ class Pasargad extends PortAbstract implements PortInterface
     }
 
     /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.pasargad.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-
-        return $url;
-    }
-
-    /**
      * Verify user payment
      *
      * @return bool
@@ -277,37 +245,30 @@ class Pasargad extends PortAbstract implements PortInterface
     {
         $this->oauth();
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseUrl . $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $response = $this->http()->postJson($this->baseUrl . $url, $params, [
             'Authorization: Bearer '. $this->accessToken,
             'Content-Type: application/json; charset=UTF-8',
         ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-        if ((int)$info["http_code"] == 401 && !$isAccessTokenRequest) {
+
+        if ($response->status() === 401 && !$isAccessTokenRequest) {
             $this->oauth(true);
             return $this->curl_post($url, $params, true);
         }
 
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
+        if ($response->successful()) {
+            return $response->body();
+        }
 
         if ($log) {
             $this->transactionFailed();
         }
-        $response = json_decode($res, true);
-        if (isset($response['resultCode'])) {
-            $code = isset($response['resultCode']) ? $response['resultCode'] : -1;
+        $decoded = $response->json(true);
+        if (isset($decoded['resultCode'])) {
+            $code = isset($decoded['resultCode']) ? $decoded['resultCode'] : -1;
             throw new PasargadException($code);
         }
         if ($log) {
-            $this->newLog($info["http_code"], $res);
+            $this->newLog($response->status(), $response->body());
         }
         throw new PasargadException(-1);
     }
@@ -318,62 +279,49 @@ class Pasargad extends PortAbstract implements PortInterface
      */
     private function oauth(bool $forgotCache = false): void
     {
-        $cacheService = null;
-        $cacheKey = $this->cacheKey(self::CACHE_KEY);
+        $this->accessToken = $this->rememberToken(
+            $this->cacheKey(self::CACHE_KEY),
+            $forgotCache,
+            function (): array {
+                $params = [
+                    'username' => $this->config->get('gateway.pasargad.username'),
+                    'password' => $this->config->get('gateway.pasargad.password'),
+                ];
+                $httpCode = 0;
 
-        if ($this->useCache) {
-            $cacheService = $this->cacheService();
-            if ($cacheService::has($cacheKey)) {
-                if (!$forgotCache) {
-                    $this->accessToken = $cacheService::get($cacheKey);
-                    return;
+                try {
+                    $response = $this->http()->postJson(
+                        $this->baseUrl . self::AUTH_PATH,
+                        $params,
+                        [
+                            'Content-Type: application/json',
+                        ],
+                        [
+                            'verify_host' => null,
+                        ]
+                    );
+                    $httpCode = $response->status();
+
+                    if ($response->error() !== '') {
+                        throw new PasargadException($httpCode, $response->error());
+                    }
+
+                    $result = $response->json();
+                } catch (Exception $ex) {
+                    throw new PasargadException($httpCode, $ex->getMessage());
                 }
-                $cacheService::forget($cacheKey);
+
+                if ($httpCode !== 200) {
+                    throw new PasargadException($httpCode);
+                }
+
+                if (!isset($result->token)) {
+                    throw new PasargadException(-1);
+                }
+
+                return [$result->token, 60 * 5];
             }
-        }
-
-        $params = [
-            'username' => $this->config->get('gateway.pasargad.username'),
-            'password' => $this->config->get('gateway.pasargad.password'),
-        ];
-
-        try {
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $this->baseUrl . self::AUTH_PATH);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type' => 'application/json'
-            ]);
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $ch_error = curl_error($ch);
-            curl_close($ch);
-
-            if ($ch_error) {
-                throw new PasargadException($httpCode, $ch_error);
-            }
-
-            $result = json_decode($response);
-        } catch (Exception $ex) {
-            throw new PasargadException($httpCode, $ex->getMessage());
-        }
-
-        if ($httpCode !== 200) {
-            throw new PasargadException($httpCode);
-        }
-
-        if (!isset($result->token)) {
-            throw new PasargadException(-1);
-        }
-        $this->accessToken = $result->token;
-        $ttl = 60 *5;
-        if ($this->useCache) {
-            $cacheService = $this->cacheService();
-            $cacheService::put($cacheKey, $this->accessToken, $ttl);
-        }
+        );
     }
 
 }

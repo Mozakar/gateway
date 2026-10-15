@@ -9,6 +9,10 @@ use Mozakar\Gateway\PortInterface;
 
 class Payline extends PortAbstract implements PortInterface
 {
+	protected ?string $callbackConfig = 'gateway.payline.callback-url';
+
+	protected bool $encodeCallback = true;
+
 	/**
 	 * Address of main CURL server
 	 *
@@ -29,16 +33,6 @@ class Payline extends PortAbstract implements PortInterface
 	 * @var string
 	 */
 	protected $gateUrl = 'https://pay.ir/payment/gateway/';
-
-	/**
-	 * {@inheritdoc}
-	 */
-	public function set($amount)
-	{
-		$this->amount = $amount;
-
-		return $this;
-	}
 
 	/**
 	 * {@inheritdoc}
@@ -72,28 +66,6 @@ class Payline extends PortAbstract implements PortInterface
 	}
 
 	/**
-	 * Sets callback url
-	 * @param $url
-	 */
-	function setCallback($url)
-	{
-		$this->callbackUrl = $url;
-		return $this;
-	}
-
-	/**
-	 * Gets callback url
-	 * @return string
-	 */
-	function getCallback()
-	{
-		if (!$this->callbackUrl)
-			$this->callbackUrl = $this->config->get('gateway.payline.callback-url');
-
-		return urlencode($this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]));
-	}
-
-	/**
 	 * Send pay request to server
 	 *
 	 * @return void
@@ -110,15 +82,9 @@ class Payline extends PortAbstract implements PortInterface
 			'redirect' => $this->getCallback(),
 		);
 
-		$ch = curl_init();
-
-		curl_setopt($ch, CURLOPT_URL, $this->serverUrl);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-		$response = curl_exec($ch);
-		curl_close($ch);
+		$response = $this->http()->post($this->serverUrl, http_build_query($fields), [], [
+			'verify_host' => null,
+		])->body();
 
 		if (is_numeric($response) && $response > 0) {
 			$this->refId = $response;
@@ -169,15 +135,9 @@ class Payline extends PortAbstract implements PortInterface
 			'trans_id' => $this->trackingCode()
 		);
 
-		$ch = curl_init();
-
-		curl_setopt($ch, CURLOPT_URL, $this->serverVerifyUrl);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-		$response = curl_exec($ch);
-		curl_close($ch);
+		$response = $this->http()->post($this->serverVerifyUrl, http_build_query($fields), [], [
+			'verify_host' => null,
+		])->body();
 
 		if ($response == 1) {
 			$this->transactionSucceed();

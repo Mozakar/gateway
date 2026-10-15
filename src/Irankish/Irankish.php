@@ -11,6 +11,8 @@ use Mozakar\Gateway\PortInterface;
 
 class Irankish extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.irankish.callback-url';
+
     /**
      * Address of main SOAP server
      *
@@ -23,16 +25,6 @@ class Irankish extends PortAbstract implements PortInterface
 
 //    protected $gateUrl = "http://banktest.ir/gateway/irankish/gate";
     protected $gateUrl = "https://ikc.shaparak.ir/TPayment/Payment/index";
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -66,31 +58,6 @@ class Irankish extends PortAbstract implements PortInterface
         $this->userPayment();
         $this->verifyPayment();
         return $this;
-    }
-
-    /**
-     * Sets callback url
-     *
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl) {
-            $this->callbackUrl = $this->config->get('gateway.irankish.callback-url');
-        }
-
-        return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
     }
 
     /**

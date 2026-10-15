@@ -4,11 +4,14 @@ namespace Mozakar\Gateway\Miligold;
 
 use Exception;
 use Mozakar\Gateway\Currency;
+use Mozakar\Gateway\Http\HttpResponse;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
 
 class Miligold extends PortAbstract implements PortInterface
 {
+	protected ?string $callbackConfig = 'gateway.mili_gold.callback-url';
+
 	private const PURCHASE_PATH = 'psp/v1/purchase';
 	private const VERIFY_PATH = 'psp/v1/purchase/%s/payment/verify';
 
@@ -52,15 +55,17 @@ class Miligold extends PortAbstract implements PortInterface
 	public function getClientVersion(): string {
 		return $this->clientVersion;
 	}
-	/**
-	 * {@inheritdoc}
-	 */
-	public function set($amount): static
+	protected function supportedCurrencies(): array
 	{
-		$this->amount = intval($amount);
-		return $this;
+		return Currency::ALL;
 	}
 
+	/**
+	 * Milli is priced from the live gold rate inside purchaseRequest().
+	 */
+	protected function normalizeAmount(): void
+	{
+	}
 
 	/**
 	 * {@inheritdoc}
@@ -92,30 +97,6 @@ class Miligold extends PortAbstract implements PortInterface
 	}
 
 	/**
-	 * Sets callback url
-	 * @param $url
-	 */
-	function setCallback($url): static
-	{
-		$this->callbackUrl = $url;
-		return $this;
-	}
-
-	/**
-	 * Gets callback url
-	 * @return string
-	 */
-	function getCallback(): string
-	{
-		if (!$this->callbackUrl)
-		{
-			$this->callbackUrl = $this->config->get('gateway.mili_gold.callback-url');
-		}
-
-		return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-	}
-
-    /**
 	 * Send pay request to server
 	 *
 	 * @return void
@@ -274,32 +255,7 @@ class Miligold extends PortAbstract implements PortInterface
      */
     function curl_get(string $path): string
     {
-        $baseUrl = trim($this->config->get('gateway.mili_gold.base_url'), '/');
-        $url = $baseUrl . '/' . $path;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-			'X-API-KEY:' . $this->config->get('gateway.mili_gold.api_key'),
-			'X-Platform:' . $this->getPlatform(),
-			'X-Channel:' . $this->getChannel(),
-			'X-Client-Version:' . $this->getClientVersion(),
-            'Content-Type: application/json; charset=UTF-8',
-        ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-        if($info["http_code"] == 200 || $info["http_code"] == "200") {
-			return $res;
-		}
-        $response = json_decode($res);
-        if (isset($response->code)) {
-            $message = isset($response->message) ? $response->message : '';
-            throw new MiligoldException($response->code, $message);
-        }
-        throw new MiligoldException(-1);
+        return $this->miliResponse($this->http()->get($this->miliUrl($path), $this->miliHeaders()));
     }
 
 	/**
@@ -312,35 +268,42 @@ class Miligold extends PortAbstract implements PortInterface
      */
     function curl_post(string $path, array $params = []): string
     {
-		$baseUrl = trim($this->config->get('gateway.mili_gold.base_url'), '/');
-        $url = $baseUrl . '/' . $path;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        return $this->miliResponse($this->http()->postJson($this->miliUrl($path), $params, $this->miliHeaders()));
+    }
+
+	private function miliUrl(string $path): string
+	{
+		return trim($this->config->get('gateway.mili_gold.base_url'), '/') . '/' . $path;
+	}
+
+	/**
+	 * @return string[]
+	 */
+	private function miliHeaders(): array
+	{
+		return [
 			'X-API-KEY:' . $this->config->get('gateway.mili_gold.api_key'),
 			'X-Platform:' . $this->getPlatform(),
 			'X-Channel:' . $this->getChannel(),
 			'X-Client-Version:' . $this->getClientVersion(),
-            'Content-Type: application/json; charset=UTF-8',
-        ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-        if($info["http_code"] == 200 || $info["http_code"] == "200") {
-			return $res;
+			'Content-Type: application/json; charset=UTF-8',
+		];
+	}
+
+	private function miliResponse(HttpResponse $response): string
+	{
+		if ($response->successful()) {
+			return $response->body();
 		}
 
-        $response = json_decode($res);
-        if (isset($response->code)) {
-            $message = isset($response->message) ? $response->message : '';
-            throw new MiligoldException($response->code, $message);
-        }
-        throw new MiligoldException(-1);
-    }
+		$decoded = $response->json();
+		if (isset($decoded->code)) {
+			$message = isset($decoded->message) ? $decoded->message : '';
+			throw new MiligoldException($decoded->code, $message);
+		}
+
+		throw new MiligoldException(-1);
+	}
 
 
 	/**

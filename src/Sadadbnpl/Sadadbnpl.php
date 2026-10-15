@@ -5,41 +5,17 @@ namespace Mozakar\Gateway\Sadadbnpl;
 use Exception;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
-use Mozakar\Gateway\Currency;
 
 class Sadadbnpl extends PortAbstract implements PortInterface
 {
+	protected ?string $callbackConfig = 'gateway.sadad_bnpl.callback-url';
+
 	private const VERIFY_URL = 'BNPL/Financial/CPG/VerifyTransaction';
 
 	private const TOKEN_URL = 'CPG/Security/Token/RequestToken';
 
 	private string $paymentUrl = '';
 
-    protected string $currency = Currency::RIAL;
-	/**
-	 * {@inheritdoc}
-	 */
-	public function set($amount)
-	{
-		$this->amount = intval($amount);
-
-		return $this;
-	}
-	/**
-	 * Set currency
-	 * @param string $currency
-	 * @return $this
-	 */
-    protected function setCurrency(string $currency): static
-	{
-		$currency = strtoupper($currency);
-        $allowedCurrencies = [Currency::RIAL, Currency::TOMAN];
-		if (!in_array($currency, $allowedCurrencies)) {
-			throw new \Exception("Currency is not valid, allowed currencies are: " . implode(", ", $allowedCurrencies));
-		}
-		$this->currency = $currency;
-		return $this;
-	}
 	/**
 	 * {@inheritdoc}
 	 */
@@ -71,28 +47,6 @@ class Sadadbnpl extends PortAbstract implements PortInterface
 	}
 
 	/**
-	 * Sets callback url
-	 * @param $url
-	 */
-	function setCallback($url)
-	{
-		$this->callbackUrl = $url;
-		return $this;
-	}
-
-	/**
-	 * Gets callback url
-	 * @return string
-	 */
-	function getCallback()
-	{
-		if (!$this->callbackUrl)
-			$this->callbackUrl = $this->config->get('gateway.sadad_bnpl.callback-url');
-
-		return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-	}
-
-    /**
 	 * Send pay request to server
 	 *
 	 * @return void
@@ -104,15 +58,11 @@ class Sadadbnpl extends PortAbstract implements PortInterface
 		$this->newTransaction();
 		try {
             $encryptedPassword = $this->encryptAES($this->config->get('gateway.sadad_bnpl.password'));
-			$amount = $this->amount;
-            if($this->currency == Currency::TOMAN) {
-				$amount = $this->amount * 10;
-			}
             $data = [
 					'ServiceUserName' => $this->config->get('gateway.sadad_bnpl.username'),
 					'ServicePassword' => $encryptedPassword,
 					'MerchantNumber' => $this->config->get('gateway.sadad_bnpl.merchant'),
-					'Amount' => $amount,
+					'Amount' => $this->amount,
 					'ReturnUrl' =>$this->getCallback(),
 					'CellNumber' => $this->getMobile(),
 
@@ -220,34 +170,27 @@ class Sadadbnpl extends PortAbstract implements PortInterface
     function curl_post(string $serviceName, array $params = []): string
     {
 		$url = $this->config->get('gateway.sadad_bnpl.url', 'https://op-cpg-wrapper.bmicc.ir:44377/WEBAPIWrapper/ConsumerExternalWebapiWrapper');
-		$body = [
+		$response = $this->http()->postJson($url, [
 			'ServiceName' => $serviceName,
 			'InputValue' => $params,
-		];
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_VERBOSE, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+		], [
             'Content-Type: application/json; charset=UTF-8',
-        ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-        if($info["http_code"] == 200 || $info["http_code"] == "200") {
-			return $res;
+        ], [
+			'verbose' => true,
+		]);
+
+        if ($response->successful()) {
+			return $response->body();
 		}
-        $response = json_decode($res, true);
-        if (isset($response['notification']['errors'])) {
-            $messages = array_column($response['notification']['errors'] ?? [], 'message');
+
+        $decoded = $response->json(true);
+        if (isset($decoded['notification']['errors'])) {
+            $messages = array_column($decoded['notification']['errors'] ?? [], 'message');
 			$message = implode(', ', $messages);
-			$code = $response['notification']['errors'][0]['code'] ?? -1;
+			$code = $decoded['notification']['errors'][0]['code'] ?? -1;
             throw new SadadBnplException($code, $message);
         }
-        $this->newLog($info["http_code"], $res);
+        $this->newLog($response->status(), $response->body());
         throw new SadadBnplException(-100);
     }
 

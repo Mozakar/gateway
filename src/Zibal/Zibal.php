@@ -8,6 +8,8 @@ use Mozakar\Gateway\PortInterface;
 
 class Zibal extends PortAbstract implements PortInterface
 {
+	protected ?string $callbackConfig = 'gateway.zibal.callback-url';
+
 
 	/**
 	 * Address of base url
@@ -71,16 +73,6 @@ class Zibal extends PortAbstract implements PortInterface
 	/**
 	 * {@inheritdoc}
 	 */
-	public function set($amount)
-	{
-		$this->amount = intval($amount);
-
-		return $this;
-	}
-
-	/**
-	 * {@inheritdoc}
-	 */
 	public function redirect()
 	{
 		return redirect()->to($this->serverUrl . self::PAY_PATH  . $this->refId);
@@ -97,28 +89,6 @@ class Zibal extends PortAbstract implements PortInterface
 		$this->verifyPayment();
 
 		return $this;
-	}
-
-	/**
-	 * Sets callback url
-	 * @param $url
-	 */
-	function setCallback($url)
-	{
-		$this->callbackUrl = $url;
-		return $this;
-	}
-
-	/**
-	 * Gets callback url
-	 * @return string
-	 */
-	function getCallback()
-	{
-		if (!$this->callbackUrl)
-			$this->callbackUrl = $this->config->get('gateway.zibal.callback-url');
-
-		return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
 	}
 
 	/**
@@ -309,32 +279,21 @@ class Zibal extends PortAbstract implements PortInterface
 	}
 
 	public function curl_post($url, $params)
-  {
-      $headers = [
-        'Content-Type: application/json',
-        'Accept: application/json'
-      ];
+	{
+		$response = $this->http()->postJson($url, $params, [
+			'Content-Type: application/json',
+			'Accept: application/json',
+		]);
 
-      $ch = curl_init();
-      curl_setopt($ch, CURLOPT_URL, $url);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-      curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-      curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-      $res = curl_exec($ch);
-      $info = curl_getinfo($ch);
-      curl_close($ch);
+		if ($response->successful()) {
+			return $response->body();
+		}
 
-      if($info["http_code"] == 200 || $info["http_code"] == "200")
-          return $res;
+		$result = $response->json(true);
+		if (isset($result['result'])) {
+			throw new ZibalException($result['result']);
+		}
 
-      $result = json_decode($res, true);
-      if (isset($result['result'])) {
-        throw new ZibalException($result['result']);
-      }
-
-		  throw new ZibalException(0);
-  }
+		throw new ZibalException(0);
+	}
 }

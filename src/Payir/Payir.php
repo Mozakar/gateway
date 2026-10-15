@@ -8,6 +8,10 @@ use Mozakar\Gateway\PortInterface;
 
 class Payir extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.payir.callback-url';
+
+    protected bool $encodeCallback = true;
+
     /**
      * Address of main CURL server
      *
@@ -30,15 +34,6 @@ class Payir extends PortAbstract implements PortInterface
 
 
     protected $factorNumber;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount * 10;
-        return $this;
-    }
 
     /**
      * تعیین شماره فاکتور (اختیاری)
@@ -82,28 +77,6 @@ class Payir extends PortAbstract implements PortInterface
     }
 
     /**
-     * Sets callback url
-     *
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.payir.callback-url');
-        return urlencode($this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]));
-    }
-
-    /**
      * Send pay request to server
      *
      * @return void
@@ -122,14 +95,9 @@ class Payir extends PortAbstract implements PortInterface
         if (isset($this->factorNumber))
             $fields['factorNumber'] = $this->factorNumber;
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->serverUrl);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $response = curl_exec($ch);
-        $response = json_decode($response, true);
-        curl_close($ch);
+        $response = $this->http()->post($this->serverUrl, http_build_query($fields), [], [
+            'verify_host' => null,
+        ])->json(true);
         if (is_numeric($response['status']) && $response['status'] > 0) {
             $this->refId = $response['transId'];
             $this->transactionSetRefId();
@@ -175,14 +143,9 @@ class Payir extends PortAbstract implements PortInterface
             'api'     => $this->config->get('gateway.payir.api'),
             'transId' => $this->refId(),
         ];
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->serverVerifyUrl);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($fields));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        $response = curl_exec($ch);
-        $response = json_decode($response, true);
-        curl_close($ch);
+        $response = $this->http()->post($this->serverVerifyUrl, http_build_query($fields), [], [
+            'verify_host' => null,
+        ])->json(true);
         if ($response['status'] == 1) {
             $this->transactionSucceed();
             $this->newLog(1, Enum::TRANSACTION_SUCCEED_TEXT);

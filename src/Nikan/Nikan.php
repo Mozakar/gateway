@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Request;
 
 class Nikan extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.nikan.callback-url';
+
     /**
      *
      * @var Array $optional_data An array of optional data
@@ -28,16 +30,6 @@ class Nikan extends PortAbstract implements PortInterface
     protected $serverPaymentUrl = 'http://core.nikanbanking.com/api/pardakht/payment';
     protected $serverVerifyUrl = 'http://core.nikanbanking.com/api/pardakht/verify';
 	protected $token;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -123,29 +115,6 @@ class Nikan extends PortAbstract implements PortInterface
         return $this;
     }
 
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.nikan.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-
-        return $url;
-    }
 
 
 
@@ -188,22 +157,10 @@ class Nikan extends PortAbstract implements PortInterface
 
     function curl_post($url, $params)
     {
-        $authorization = $this->config->get('gateway.nikan.token');
-        $authorization = str_replace("Bearer ", "", $authorization);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: Bearer ' . $authorization,
+        return $this->http()->postJson($url, $params, [
+            $this->authorizationHeader($this->config->get('gateway.nikan.token')),
             'Content-Type: application/json',
-        ]);
-        $res = curl_exec($ch);
-        curl_close($ch);
-
-        return $res;
+        ])->body();
     }
 
 

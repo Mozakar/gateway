@@ -9,22 +9,14 @@ use Mozakar\Gateway\PortInterface;
 
 class Asanpardakht extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.asanpardakht.callback-url';
+
     /**
      * Address of main SOAP server
      *
      * @var string
      */
     protected $serverUrl = 'https://services.asanpardakht.net/paygate/merchantservices.asmx?wsdl';
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -57,30 +49,6 @@ class Asanpardakht extends PortAbstract implements PortInterface
         $this->userPayment();
         $this->verifyAndSettlePayment();
         return $this;
-    }
-
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.asanpardakht.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-
-        return $url;
     }
 
     /**

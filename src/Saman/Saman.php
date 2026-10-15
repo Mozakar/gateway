@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Request;
 
 class Saman extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.saman.callback-url';
+
     /**
      *
      * @var Array $optional_data An array of optional data
@@ -30,16 +32,6 @@ class Saman extends PortAbstract implements PortInterface
     protected $gateUrl = "https://sep.shaparak.ir/Payment.aspx";
 	protected $connection_timeout = 60;
 	protected $token;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -130,31 +122,6 @@ class Saman extends PortAbstract implements PortInterface
 
         return $this;
     }
-
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.saman.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-
-        return $url;
-    }
-
 
     /**
      * Check user payment

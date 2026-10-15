@@ -3,11 +3,14 @@
 namespace Mozakar\Gateway\Setareaval;
 
 use Exception;
+use Mozakar\Gateway\Http\HttpResponse;
 use Mozakar\Gateway\PortAbstract;
 use Mozakar\Gateway\PortInterface;
 
 class Setareaval extends PortAbstract implements PortInterface
 {
+	protected ?string $callbackConfig = 'gateway.setare_aval.callback-url';
+
 	private const BASE_URL = 'https://starsellers-api.setareyek.ir/api/v1/SetareAvalIPG/';
 	private const TOKEN_PATH = 'GetToken?username=%s&password=%s';
 	private const PURCHASE_PATH = 'Purchase';
@@ -18,15 +21,6 @@ class Setareaval extends PortAbstract implements PortInterface
 	private const REFUND_PAYMENT_PATH = 'RefundPayment';
 
 	private array $orders = [];
-	/**
-	 * {@inheritdoc}
-	 */
-	public function set($amount)
-	{
-		$this->amount = intval($amount);
-		return $this;
-	}
-
 	/**
 	 * Set orders function
 	 *
@@ -76,30 +70,6 @@ class Setareaval extends PortAbstract implements PortInterface
 	}
 
 	/**
-	 * Sets callback url
-	 * @param $url
-	 */
-	function setCallback($url)
-	{
-		$this->callbackUrl = $url;
-		return $this;
-	}
-
-	/**
-	 * Gets callback url
-	 * @return string
-	 */
-	function getCallback()
-	{
-		if (!$this->callbackUrl)
-		{
-			$this->callbackUrl = $this->config->get('gateway.setare_aval.callback-url');
-		}
-
-		return $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-	}
-
-    /**
 	 * Send token request to server
 	 *
 	 * @return void
@@ -292,33 +262,7 @@ class Setareaval extends PortAbstract implements PortInterface
      */
     function curl_get(string $path): string
     {
-        $url = self::BASE_URL . $path;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json; charset=UTF-8',
-        ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
-
-        $this->transactionFailed();
-        $response = json_decode($res);
-        if (isset($response->ResponseCode)) {
-            $message = isset($response->Message) ? $response->Message : '';
-            throw new SetareAvalException($response->ResponseCode, $message);
-        }
-        if (isset($response->ResCode)) {
-            $message = isset($response->Description) ? $response->Description : '';
-            throw new SetareAvalException($response->ResCode, $message);
-        }
-        $this->newLog($info["http_code"], $res);
-        throw new SetareAvalException(-1);
+        return $this->setareResponse($this->http()->get(self::BASE_URL . $path, $this->setareHeaders()));
     }
 
 	/**
@@ -331,34 +275,37 @@ class Setareaval extends PortAbstract implements PortInterface
      */
     function curl_post(string $path, array $params = []): string
     {
-        $url = self::BASE_URL . $path;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json; charset=UTF-8',
-        ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
-
-        $this->transactionFailed();
-        $response = json_decode($res);
-        if (isset($response->ResponseCode)) {
-            $message = isset($response->Message) ? $response->Message : '';
-            throw new SetareAvalException($response->ResponseCode, $message);
-        }
-        if (isset($response->ResCode)) {
-            $message = isset($response->Description) ? $response->Description : '';
-            throw new SetareAvalException($response->ResCode, $message);
-        }
-        $this->newLog($info["http_code"], $res);
-        throw new SetareAvalException(-1);
+        return $this->setareResponse($this->http()->postJson(self::BASE_URL . $path, $params, $this->setareHeaders()));
     }
+
+	/**
+	 * @return string[]
+	 */
+	private function setareHeaders(): array
+	{
+		return [
+			'Content-Type: application/json; charset=UTF-8',
+		];
+	}
+
+	private function setareResponse(HttpResponse $response): string
+	{
+		if ($response->successful()) {
+			return $response->body();
+		}
+
+		$this->transactionFailed();
+		$decoded = $response->json();
+		if (isset($decoded->ResponseCode)) {
+			$message = isset($decoded->Message) ? $decoded->Message : '';
+			throw new SetareAvalException($decoded->ResponseCode, $message);
+		}
+		if (isset($decoded->ResCode)) {
+			$message = isset($decoded->Description) ? $decoded->Description : '';
+			throw new SetareAvalException($decoded->ResCode, $message);
+		}
+		$this->newLog($response->status(), $response->body());
+		throw new SetareAvalException(-1);
+	}
 
 }

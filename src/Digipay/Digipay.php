@@ -10,6 +10,8 @@ use Mozakar\Gateway\Digipay\DigipayException;
 
 class Digipay extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.digipay.callback-url';
+
     /**
      *
      * @var array $optional_data An array of optional data
@@ -38,16 +40,6 @@ class Digipay extends PortAbstract implements PortInterface
 
     private string $ticketType;
     private array $basketItems = [];
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
-    }
 
     /**
      * {@inheritdoc}
@@ -152,28 +144,9 @@ class Digipay extends PortAbstract implements PortInterface
         return $this;
     }
 
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
+    protected function callbackQuery(): array
     {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.payping.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId(), 'providerId' => $this->getOrderId()]);
-
-        return $url;
+        return ['providerId' => $this->getOrderId()];
     }
 
     /**
@@ -311,41 +284,34 @@ class Digipay extends PortAbstract implements PortInterface
 
         $this->oauth();
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->baseUrl . $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $response = $this->http()->postJson($this->baseUrl . $url, $params, [
             'Agent: WEB',
             'Digipay-Version: ' . self::VERSION,
             'Authorization: Bearer '. $this->accessToken,
             'Content-Type: application/json; charset=UTF-8',
         ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
-        if ((int)$info["http_code"] == 401 && !$isAccessTokenRequest) {
+
+        if ($response->status() === 401 && !$isAccessTokenRequest) {
             $this->oauth(true);
             return $this->curl_post($url, $params, true);
         }
 
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
+        if ($response->successful()) {
+            return $response->body();
+        }
 
         if ($log) {
             $this->transactionFailed();
         }
-        $response = json_decode($res, true);
-        if (isset($response['result']['status']) && isset($response['result']['message'])) {
-            throw new DigipayException($response['result']['status'], $response['result']['message']);
+        $decoded = $response->json(true);
+        if (isset($decoded['result']['status']) && isset($decoded['result']['message'])) {
+            throw new DigipayException($decoded['result']['status'], $decoded['result']['message']);
         }
-        if (isset($response['result']['status']) && $response['result']['status'] !== 0) {
-            throw new DigipayException($response['result']['status']);
+        if (isset($decoded['result']['status']) && $decoded['result']['status'] !== 0) {
+            throw new DigipayException($decoded['result']['status']);
         }
         if ($log) {
-            $this->newLog($info["http_code"], $res);
+            $this->newLog($response->status(), $response->body());
         }
         throw new DigipayException(-2);
     }
@@ -356,70 +322,56 @@ class Digipay extends PortAbstract implements PortInterface
      */
     private function oauth(bool $forgotCache = false): void
     {
-        $cacheService = null;
-        $cacheKey = $this->cacheKey("digipay_token");
+        $this->accessToken = $this->rememberToken(
+            $this->cacheKey('digipay_token'),
+            $forgotCache,
+            function (): array {
+                $params = [
+                    'username' => $this->config->get('gateway.digipay.username'),
+                    'password' => $this->config->get('gateway.digipay.password'),
+                    'grant_type' => 'password',
+                ];
+                $clientId = $this->config->get('gateway.digipay.client_id') ?: $this->config->get('gateway.digipay.clientId');
+                $clientSecret = $this->config->get('gateway.digipay.client_secret') ?: $this->config->get('gateway.digipay.clientSecret');
+                $httpCode = 0;
 
-        if ($this->useCache) {
-            $cacheService = $this->cacheService();
-            if ($cacheService::has($cacheKey)) {
-                if (!$forgotCache) {
-                    $this->accessToken = $cacheService::get($cacheKey);
-                    return;
+                try {
+                    $response = $this->http()->post(
+                        $this->baseUrl . self::AUTH_URL,
+                        $params,
+                        [
+                            'Content-Type' => 'application/json',
+                            'Authorization' => 'Basic ' . base64_encode("{$clientId}:{$clientSecret}"),
+                        ],
+                        [
+                            'userpwd' => "{$clientId}:{$clientSecret}",
+                            'verify_host' => null,
+                        ]
+                    );
+                    $httpCode = $response->status();
+
+                    if ($response->error() !== '') {
+                        throw new DigipayException($httpCode, $response->error());
+                    }
+
+                    $result = $response->json();
+                } catch (Exception $ex) {
+                    throw new DigipayException($httpCode, $ex->getMessage());
                 }
-                $cacheService::forget($cacheKey);
+
+                if ($httpCode !== 200) {
+                    throw new DigipayException($httpCode);
+                }
+
+                if (!isset($result->access_token)) {
+                    throw new DigipayException(-1);
+                }
+
+                $ttl = isset($result->expires_in) ? (int) $result->expires_in : 60 * 60;
+
+                return [$result->access_token, $ttl];
             }
-        }
-
-        $params = [
-            'username' => $this->config->get('gateway.digipay.username'),
-            'password' => $this->config->get('gateway.digipay.password'),
-            'grant_type' => 'password',
-        ];
-
-        $clientId = $this->config->get('gateway.digipay.client_id');
-        $clientSecret = $this->config->get('gateway.digipay.client_secret');
-        try {
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $this->baseUrl . self::AUTH_URL);
-            curl_setopt($ch, CURLOPT_USERPWD, "{$clientId}:{$clientSecret}");
-            curl_setopt($ch, CURLOPT_HTTPHEADER, [
-                'Content-Type' => 'application/json',
-                'Authorization' => 'Basic '.base64_encode("{$clientId}:{$clientSecret}"),
-            ]);
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            $response = curl_exec($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $ch_error = curl_error($ch);
-            curl_close($ch);
-
-            if ($ch_error) {
-                throw new DigipayException($httpCode, $ch_error);
-            }
-
-            $result = json_decode($response);
-        } catch (Exception $ex) {
-            throw new DigipayException($httpCode, $ex->getMessage());
-        }
-
-        if ($httpCode !== 200) {
-            throw new DigipayException($httpCode);
-        }
-
-        if (!isset($result->access_token)) {
-            throw new DigipayException(-1);
-        }
-        $this->accessToken = $result->access_token;
-        $ttl = 60 *60;
-        if (isset($result->expires_in)) {
-            $ttl = (int)$result->expires_in;
-        }
-        if ($this->useCache) {
-            $cacheService = $this->cacheService();
-            $cacheService::put($cacheKey, $this->accessToken, $ttl);
-        }
+        );
     }
 
 }

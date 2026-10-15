@@ -24,8 +24,10 @@ use Mozakar\Gateway\Exceptions\PortNotFoundException;
 use Mozakar\Gateway\Exceptions\InvalidRequestException;
 use Mozakar\Gateway\Exceptions\NotFoundTransactionException;
 use Mozakar\Gateway\Miligold\Miligold;
-// use Mozakar\Gateway\Setareaval\Setareaval;
 use Mozakar\Gateway\Zibal\Zibal;
+// use Mozakar\Gateway\JahanPay\JahanPay;
+// use Mozakar\Gateway\Payline\Payline;
+// use Mozakar\Gateway\Setareaval\Setareaval;
 
 class GatewayResolver
 {
@@ -130,59 +132,82 @@ class GatewayResolver
 
 
 	/**
+	 * Port name => driver class.
+	 *
+	 * @return array<string, class-string<PortInterface>>
+	 */
+	protected function portMap(): array
+	{
+		return [
+			Enum::MELLAT => Mellat::class,
+			Enum::PARSIAN => Parsian::class,
+			Enum::SAMAN => Saman::class,
+			Enum::SAMANOLD => SamanOld::class,
+			Enum::ZARINPAL => Zarinpal::class,
+			Enum::SADAD => Sadad::class,
+			Enum::ASANPARDAKHT => Asanpardakht::class,
+			Enum::PAYIR => Payir::class,
+			Enum::PASARGAD => Pasargad::class,
+			Enum::NIKAN => Nikan::class,
+			Enum::PAYPING => Payping::class,
+			Enum::IRANKISH => Irankish::class,
+			Enum::APSAN => Apsan::class,
+			Enum::VANDAR => Vandar::class,
+			Enum::SADAD_BNPL => Sadadbnpl::class,
+			Enum::DIGIPAY => Digipay::class,
+			Enum::ZIBAL => Zibal::class,
+			Enum::MILIGOLD => Miligold::class,
+			// Enum::PAYLINE => Payline::class,
+			// Enum::JAHANPAY => JahanPay::class,
+			// Enum::SETAREAVAL => Setareaval::class,
+		];
+	}
+
+	/**
 	 * Create new object from port class
 	 *
-	 * @param int $port
+	 * @param PortInterface|string $port port instance or name, such as "mellat"
 	 * @throws PortNotFoundException
+	 * @return $this
 	 */
 	function make($port)
     {
-       $portsMap = [
-			Mellat::class        => Enum::MELLAT,
-			Parsian::class       => Enum::PARSIAN,
-			Saman::class         => Enum::SAMAN,
-			SamanOld::class      => Enum::SAMANOLD,
-			Zarinpal::class      => Enum::ZARINPAL,
-			Sadad::class         => Enum::SADAD,
-			Asanpardakht::class  => Enum::ASANPARDAKHT,
-			Payir::class         => Enum::PAYIR,
-			Pasargad::class      => Enum::PASARGAD,
-			Nikan::class         => Enum::NIKAN,
-			Payping::class       => Enum::PAYPING,
-			Irankish::class      => Enum::IRANKISH,
-			Apsan::class         => Enum::APSAN,
-			Vandar::class        => Enum::VANDAR,
-			Sadadbnpl::class     => Enum::SADAD_BNPL,
-			Digipay::class       => Enum::DIGIPAY,
-			Zibal::class         => Enum::ZIBAL,
-			// Setareaval::class    => Enum::SETAREAVAL,
-			Miligold::class	=> Enum::MILIGOLD,
-		];
+		[$name, $driver] = $this->resolvePort($port);
 
-		foreach ($portsMap as $class => $enumName) {
-			if ($port instanceof $class) {
-				$name = $enumName;
-				break;
-			}
-		}
-
-		if (!isset($name)) {
-			if (in_array(strtoupper($port), $this->getSupportedPorts())) {
-				$port = ucfirst(strtolower($port));
-				$name = strtoupper($port);
-				$class = __NAMESPACE__ . '\\' . $port . '\\' . $port;
-				$port = new $class;
-			} else {
-				throw new PortNotFoundException;
-			}
-		}
-
-            
-        $this->port = $port;
-        $this->port->setConfig($this->config); // injects config
-        $this->port->setPortName($name); // injects config
+        $this->port = $driver;
+        $this->port->setConfig($this->config);
+        $this->port->setPortName($name);
         $this->port->boot();
 
         return $this;
     }
+
+	/**
+	 * @param PortInterface|string $port
+	 * @return array{0: string, 1: PortInterface}
+	 * @throws PortNotFoundException
+	 */
+	protected function resolvePort($port): array
+	{
+		$map = $this->portMap();
+
+		if ($port instanceof PortInterface) {
+			foreach ($map as $name => $class) {
+				if ($port instanceof $class) {
+					return [$name, $port];
+				}
+			}
+
+			throw new PortNotFoundException;
+		}
+
+		$name = strtoupper((string) $port);
+		if (!isset($map[$name])) {
+			throw new PortNotFoundException;
+		}
+
+		$class = $map[$name];
+
+		return [$name, new $class];
+	}
 }

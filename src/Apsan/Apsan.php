@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Request;
 
 class Apsan extends PortAbstract implements PortInterface
 {
+    protected ?string $callbackConfig = 'gateway.apsan.callback-url';
+
     /**
      *
      * @var Array $optional_data An array of optional data
@@ -37,16 +39,6 @@ class Apsan extends PortAbstract implements PortInterface
         $basic=  $this->config->get('gateway.apsan.username').":". $this->config->get('gateway.apsan.password');
         $basic = base64_encode($basic);
         return $AsArray ?  [ 'Authorization: Basic '.$basic ]  : 'Authorization: Basic '.$basic;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function set($amount)
-    {
-        $this->amount = $amount;
-
-        return $this;
     }
 
     /**
@@ -150,29 +142,6 @@ class Apsan extends PortAbstract implements PortInterface
         return $this;
     }
 
-    /**
-     * Sets callback url
-     * @param $url
-     */
-    function setCallback($url)
-    {
-        $this->callbackUrl = $url;
-        return $this;
-    }
-
-    /**
-     * Gets callback url
-     * @return string
-     */
-    function getCallback()
-    {
-        if (!$this->callbackUrl)
-            $this->callbackUrl = $this->config->get('gateway.apsan.callback-url');
-
-        $url = $this->makeCallback($this->callbackUrl, ['transaction_id' => $this->transactionId()]);
-
-        return $url;
-    }
 
 
 
@@ -216,28 +185,19 @@ class Apsan extends PortAbstract implements PortInterface
 
     function curl_post($url, $params)
     {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        $response = $this->http()->postJson($url, $params, [
             $this->authHeader(),
             'accept: application/json',
             'Content-Type: application/json',
         ]);
-        $res = curl_exec($ch);
-        $info = curl_getinfo($ch);
-        curl_close($ch);
 
-        if($info["http_code"] == 200 || $info["http_code"] == "200")
-            return $res;
+        if ($response->successful()) {
+            return $response->body();
+        }
 
         $this->transactionFailed();
-       
-        $this->newLog($info["http_code"], $res);
-        throw new Exception($this->errorMessage, $info["http_code"]);
+        $this->newLog($response->status(), $response->body());
+        throw new Exception($this->errorMessage, $response->status());
     }
 
 
